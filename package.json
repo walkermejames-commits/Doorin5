@@ -1,1 +1,1 @@
-{"name":"doran-local-delivery"}
+{"name": "doran-local-delivery", "version": "0.1.0", "scripts": {"dev": "next dev"}, "dependencies": {"next": "16", "react": "19"}}

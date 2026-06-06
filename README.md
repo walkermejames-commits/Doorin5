@@ -1,3 +1,10 @@
-# Doran Local Delivery
+# Doran Local Delivery - Tunbridge Wells
 
-Single driver app for Tunbridge Wells.
+Standalone single-driver delivery app.
+
+## Setup
+npm install
+npm run dev
+
+Customer: /
+Driver: /driver
