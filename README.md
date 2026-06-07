@@ -19,6 +19,7 @@ It reuses the strongest Door in Four ideas in a smaller demoable product:
 - Public demo tracking summary
 - Supabase schema and seed data
 - Suitcase configuration endpoint
+- Readiness endpoint
 
 ## Current status
 
@@ -48,6 +49,7 @@ If Supabase is not configured, Doorin5 stays demoable with mock data.
 ## Demo endpoints
 
 - `GET /api/suitcase` - report deployment/config readiness
+- `GET /api/readiness` - report app health, mode, warnings, and env checks
 - `POST /api/link` - create secure customer link and share text
 - `POST /api/orders` - create a local delivery order
 - `POST /api/checkout` - create a mock checkout session
