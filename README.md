@@ -4,16 +4,21 @@ Doorin5 is a focused single-driver local delivery app for Tunbridge Wells and ne
 
 It reuses the strongest Door in Four ideas in a smaller demoable product:
 
+- Secure customer delivery links
 - Customer order request
 - Local postcode/service-area check
 - Delivery fee estimate
 - Mock checkout
+- Demo payment completion
+- Driver dispatch
 - Driver job queue
 - Driver status progression
 - Completion record
 - Verification flow for restricted items
+- Operations summary
 - Public demo tracking summary
 - Supabase schema and seed data
+- Suitcase configuration endpoint
 
 ## Current status
 
@@ -38,11 +43,18 @@ supabase/seed-demo.sql
 
 Then fill in `.env.local` with your Supabase URL and keys.
 
+If Supabase is not configured, Doorin5 stays demoable with mock data.
+
 ## Demo endpoints
 
-- `POST /api/orders` - create a mock local delivery order
+- `GET /api/suitcase` - report deployment/config readiness
+- `POST /api/link` - create secure customer link and share text
+- `POST /api/orders` - create a local delivery order
 - `POST /api/checkout` - create a mock checkout session
-- `GET /api/driver/jobs` - list demo driver jobs
+- `POST /api/complete-demo` - complete demo payment and create workflow events
+- `POST /api/dispatch` - assign a demo driver
+- `GET /api/driver/jobs` - list demo or Supabase driver jobs
+- `GET /api/operations/summary` - show FC-style job summary
 - `POST /api/driver/progress` - move an order to the next driver status
 - `POST /api/driver/complete` - save completion details
 - `POST /api/driver/verify` - save verification details
@@ -64,7 +76,7 @@ Before taking live orders, the app still needs:
 - Real Stripe checkout completion
 - Authentication
 - Driver account controls
-- Live database writes for all workflows
+- Live location
 - Error monitoring
 - Basic admin controls
 
