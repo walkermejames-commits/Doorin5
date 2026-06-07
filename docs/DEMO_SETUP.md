@@ -13,8 +13,10 @@ npm run dev
 Open:
 
 - Home: http://localhost:3000
+- Suitcase config: http://localhost:3000/api/suitcase
 - Demo tracking API: http://localhost:3000/api/track-demo
 - Driver jobs API: http://localhost:3000/api/driver/jobs
+- Operations summary API: http://localhost:3000/api/operations/summary
 
 ## 2. Supabase setup
 
@@ -25,20 +27,51 @@ Create a Supabase project, then open the SQL editor and run:
 
 Then copy the Supabase URL and keys into `.env.local`.
 
+If Supabase is not configured, the app stays in demo mode and returns mock data.
+
 ## 3. Demo flow to show a local business
 
 Use this story:
 
-1. A customer needs local items collected.
-2. The app validates postcode and item details.
-3. The app estimates a local delivery fee.
-4. Checkout creates a mock payment session.
-5. Driver dashboard shows paid jobs.
-6. Driver progresses the order status.
-7. Driver records completion details.
-8. Customer can see a simple tracking timeline.
+1. A shop or driver creates a secure customer link.
+2. A customer gives local delivery details.
+3. The app validates postcode and item details.
+4. The app estimates a local delivery fee.
+5. Checkout creates a mock payment session.
+6. Payment completion marks the order as paid.
+7. Dispatch assigns a demo driver.
+8. Driver jobs and operations summary show the job.
+9. Driver progresses the order status.
+10. Driver records completion details.
+11. Customer can see a simple tracking timeline.
 
-## 4. Existing demo endpoints
+## 4. Demo endpoints
+
+### Suitcase config
+
+`GET /api/suitcase`
+
+Reports app mode, Supabase readiness, Stripe readiness, service area, driver name, app URL, and tracking path.
+
+### Create secure customer link
+
+`POST /api/link`
+
+```json
+{
+  "orderId": "demo-1001",
+  "itemTitle": "Milk and tea bags",
+  "customerName": "Demo Customer",
+  "pickupHint": "Local shop collection"
+}
+```
+
+Returns:
+
+- token
+- tokenHash
+- public link
+- share text
 
 ### Create an order
 
@@ -60,6 +93,8 @@ Example body:
 }
 ```
 
+In demo mode this returns a mock paid order. In Supabase mode it writes the order and items to the database.
+
 ### Create checkout session
 
 `POST /api/checkout`
@@ -68,9 +103,66 @@ Example body:
 { "orderId": "demo-1001" }
 ```
 
+### Complete demo payment
+
+`POST /api/complete-demo`
+
+```json
+{
+  "orderId": "demo-1001",
+  "providerSessionId": "mock_session_demo-1001",
+  "providerPaymentId": "mock_payment_demo-1001"
+}
+```
+
+Returns:
+
+- updated order
+- status event
+- event log entry
+
+### Dispatch demo driver
+
+`POST /api/dispatch`
+
+```json
+{
+  "orderId": "demo-1001",
+  "driver": {
+    "id": "demo-driver-1",
+    "name": "Doorin5 Driver",
+    "status": "active",
+    "available": true
+  }
+}
+```
+
+Returns:
+
+- assigned order
+- status event
+- event log entry
+
 ### Driver jobs
 
 `GET /api/driver/jobs`
+
+Returns demo jobs when Supabase is not configured. Returns open Supabase orders when Supabase is configured.
+
+### Operations summary
+
+`GET /api/operations/summary`
+
+Returns:
+
+- visible jobs
+- paid count
+- assigned count
+- unassigned paid count
+- estimated fee total
+- available drivers
+- busy drivers
+- job cards
 
 ### Progress driver status
 
@@ -105,20 +197,31 @@ Example body:
 }
 ```
 
+### Demo tracking
+
+`GET /api/track-demo`
+
+Returns a public tracking summary for the demo order.
+
 ## 5. What is still mocked
 
 - Real Stripe payment capture
 - Authentication
-- Driver identity
+- Driver identity enforcement
 - Live location
 - Customer-facing polished screens
 
 ## 6. What is real enough for a first pitch
 
+- Secure customer link model
 - Order model
 - Fee estimate logic
+- Payment guard pattern
+- Payment completion pattern
+- Driver dispatch pattern
 - Driver job workflow
 - Status progression
 - Completion record structure
+- Operations summary
 - Supabase schema
 - Demo data
