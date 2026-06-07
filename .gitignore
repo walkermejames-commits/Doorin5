@@ -1,0 +1,15 @@
+node_modules
+node_modules/
+.next/
+dist/
+build/
+release/
+out/
+coverage/
+.env
+.env.*
+*.local
+!.env.example
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
