@@ -4,7 +4,7 @@ export type StatusEvent = {
   orderId: string;
   fromStatus: OrderStatus;
   toStatus: OrderStatus;
-  actor: "driver" | "system" | "customer";
+  actor: "driver" | "system" | "customer" | "fc";
   note?: string;
   createdAt: string;
 };
