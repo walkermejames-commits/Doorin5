@@ -24,6 +24,7 @@ type SupabaseOrderRow = {
   age_check_required: boolean;
   created_at: string;
   completed_at?: string | null;
+  payment_status?: "unpaid" | "mock_paid" | "paid" | "refunded" | "failed" | null;
   driver_id?: string | null;
   driver_name?: string | null;
   delivery_order_items?: SupabaseOrderItemRow[];
@@ -67,6 +68,7 @@ export function mapSupabaseOrder(row: SupabaseOrderRow): DeliveryOrder {
     estimatedFeePence: row.estimated_fee_pence,
     ageCheckRequired: row.age_check_required,
     createdAt: row.created_at,
+    paymentStatus: row.payment_status ?? "unpaid",
     driverId: row.driver_id ?? null,
     driverName: row.driver_name ?? null,
     completedAt: row.completed_at ?? null,

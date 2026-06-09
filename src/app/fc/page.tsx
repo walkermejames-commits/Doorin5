@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowLeft, Bike, CheckCircle2, Loader2, PackageSearch, PoundSterling } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Bike, CheckCircle2, Loader2, PackageSearch, PoundSterling, ShieldAlert } from 'lucide-react';
 import { DeliveryOrder, formatMoney, statusLabels } from '../../lib/local-delivery';
 import { DriverProfile } from '../../lib/driver-assignment';
 
@@ -24,6 +24,7 @@ export default function FcDashboard() {
   const [isDispatching, setIsDispatching] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [readiness, setReadiness] = useState<{ status?: string; warnings?: string[]; blockers?: string[]; deploymentMode?: string } | null>(null);
 
   const activeDrivers = drivers.filter((driver) => driver.status === 'active' || driver.status === 'approved').length;
   const revenue = orders.reduce((total, order) => total + order.estimatedFeePence, 0);
@@ -46,7 +47,18 @@ export default function FcDashboard() {
 
   useEffect(() => {
     loadDashboard();
+    loadReadiness();
   }, []);
+
+  async function loadReadiness() {
+    try {
+      const response = await fetch('/api/health', { cache: 'no-store' });
+      const envelope = await response.json();
+      if (response.ok) setReadiness(envelope.data ?? envelope);
+    } catch {
+      setReadiness(null);
+    }
+  }
 
   async function loadDashboard() {
     setIsLoading(true);
@@ -146,6 +158,14 @@ export default function FcDashboard() {
         )}
         {message && <p className="mt-5 rounded-lg bg-green-50 p-4 text-sm font-bold text-green-800">{message}</p>}
         {error && <p className="mt-5 rounded-lg bg-red-50 p-4 text-sm font-bold text-red-700">{error}</p>}
+        {readiness && (readiness.warnings?.length || readiness.blockers?.length) ? (
+          <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+            <p className="flex items-center gap-2 font-black"><ShieldAlert size={16} /> Pilot readiness</p>
+            <p className="mt-1">Mode: {readiness.deploymentMode ?? 'local'} · Status: {readiness.status ?? 'warning'}</p>
+            {(readiness.warnings ?? []).map((item) => <p key={item} className="mt-1">• {item}</p>)}
+            {(readiness.blockers ?? []).map((item) => <p key={item} className="mt-1 font-semibold">• {item}</p>)}
+          </div>
+        ) : null}
 
         <div className="mt-6 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -159,7 +179,9 @@ export default function FcDashboard() {
 
             <div className="mt-4 space-y-4">
               {dispatchQueue.length > 0 ? (
-                dispatchQueue.map((order) => (
+                dispatchQueue.map((order) => {
+                  const requiresManualOverride = order.status === 'draft' && order.paymentStatus !== 'paid';
+                  return (
                   <article key={order.id} className="rounded-lg border border-gray-200 bg-[#f6f7f2] p-4">
                     <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                       <div>
@@ -170,23 +192,26 @@ export default function FcDashboard() {
                       <span className="w-fit rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-800">
                         {statusLabels[order.status]}
                       </span>
+                      <span className="w-fit rounded-full bg-gray-950 px-3 py-1 text-xs font-bold text-white">Payment: {order.paymentStatus ?? 'unpaid'}</span>
                     </div>
                     <div className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
                       <Info label="Dropoff" value={order.postcode} />
                       <Info label="Fee" value={formatMoney(order.estimatedFeePence)} />
                       <Info label="Items" value={String(order.items.length)} />
                     </div>
+                    {requiresManualOverride && <p className="mt-3 rounded-lg bg-amber-50 p-3 text-xs font-bold text-amber-900">Unpaid draft order — manual FC override required before dispatch.</p>}
                     <button
                       type="button"
                       onClick={() => dispatch(order)}
-                      disabled={isDispatching === order.id || drivers.length === 0}
+                      disabled={isDispatching === order.id || drivers.length === 0 || requiresManualOverride}
                       className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-green-700 px-4 py-3 text-sm font-bold text-white disabled:bg-gray-400"
                     >
                       {isDispatching === order.id ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
-                      Assign driver
+                      {requiresManualOverride ? 'Manual FC override' : 'Assign driver'}
                     </button>
                   </article>
-                ))
+                  );
+                })
               ) : (
                 <p className="rounded-lg bg-gray-50 p-4 text-sm font-semibold text-gray-600">Dispatch queue is empty.</p>
               )}
