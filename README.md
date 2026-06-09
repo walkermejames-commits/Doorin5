@@ -23,7 +23,11 @@ It reuses the strongest Door in Four ideas in a smaller demoable product:
 
 ## Current status
 
-The backend/demo spine is now in place. The visible customer and driver pages still need final UI wiring, but the API and data model are ready for local demonstration.
+The backend/demo spine is now in place. The visible customer and driver pages are wired for local demonstration, and the API and data model are ready for the MVP flow.
+
+## App Router note
+
+The app now uses `src/app` as the only Next.js App Router root. An old top-level `app/` directory and a typo `layout.txs` file were removed because they could make local dev pick up pages without a valid root layout and show the "Missing <html> and <body> tags" overlay. If dev starts strangely, stop the server and delete `.next` before restarting.
 
 ## Quick start
 
