@@ -1,6 +1,6 @@
 import { DeliveryOrder, OrderStatus, statusLabels } from "./local-delivery";
 
-const steps: OrderStatus[] = ["paid", "accepted", "shopping", "collected", "en_route", "delivered", "completed"];
+const steps: OrderStatus[] = ["draft", "assigned", "accepted", "shopping", "collected", "en_route", "delivered", "completed"];
 
 export function getOrderTimeline(order: DeliveryOrder) {
   const currentIndex = steps.indexOf(order.status);

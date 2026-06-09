@@ -1,6 +1,7 @@
 export type OrderStatus =
   | "draft"
   | "paid"
+  | "assigned"
   | "accepted"
   | "shopping"
   | "collected"
@@ -29,6 +30,9 @@ export type DeliveryOrder = {
   estimatedFeePence: number;
   ageCheckRequired: boolean;
   createdAt: string;
+  driverId?: string | null;
+  driverName?: string | null;
+  completedAt?: string | null;
 };
 
 export const serviceAreas = [
@@ -45,6 +49,7 @@ export const serviceAreas = [
 export const statusLabels: Record<OrderStatus, string> = {
   draft: "Draft",
   paid: "Paid",
+  assigned: "Assigned to driver",
   accepted: "Accepted by driver",
   shopping: "Shopping / collecting",
   collected: "Collected",
@@ -55,7 +60,9 @@ export const statusLabels: Record<OrderStatus, string> = {
 };
 
 export const nextStatuses: Partial<Record<OrderStatus, OrderStatus>> = {
+  draft: "assigned",
   paid: "accepted",
+  assigned: "accepted",
   accepted: "shopping",
   shopping: "collected",
   collected: "en_route",

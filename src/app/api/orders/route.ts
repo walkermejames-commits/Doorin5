@@ -13,7 +13,7 @@ export async function POST(request: Request) {
 
   if (isDemoMode()) {
     const order = buildDraftOrder(body);
-    return jsonOk({ mode: "demo", order: { ...order, status: "paid" } }, { status: 201 });
+    return jsonOk({ mode: "demo", order }, { status: 201 });
   }
 
   try {
