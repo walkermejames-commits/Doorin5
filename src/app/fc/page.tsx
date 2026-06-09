@@ -1,71 +1,104 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ArrowLeft, Bike, CheckCircle2, Loader2, PackageSearch, PoundSterling } from 'lucide-react';
-import { demoOrders } from '../../lib/mock-orders';
 import { DeliveryOrder, formatMoney, statusLabels } from '../../lib/local-delivery';
+import { DriverProfile } from '../../lib/driver-assignment';
 
 type FcOrder = DeliveryOrder & {
-  driverName?: string;
   exception?: string;
 };
 
-const initialOrders: FcOrder[] = demoOrders.map((order, index) => ({
-  ...order,
-  driverName: index === 0 ? undefined : 'Doorin5 Driver',
-  exception: order.ageCheckRequired ? 'ID check required' : undefined,
-}));
-
-const demoDrivers = [
-  { id: 'driver-1', name: 'Doorin5 Driver', status: 'Active', activeJobs: 1, earningsPence: 1298 },
-  { id: 'driver-2', name: 'Backup rider', status: 'Available', activeJobs: 0, earningsPence: 0 },
-];
+type OperationsPayload = {
+  mode: 'demo' | 'supabase';
+  orders: FcOrder[];
+  drivers: DriverProfile[];
+};
 
 export default function FcDashboard() {
-  const [orders, setOrders] = useState(initialOrders);
+  const [orders, setOrders] = useState<FcOrder[]>([]);
+  const [drivers, setDrivers] = useState<DriverProfile[]>([]);
+  const [mode, setMode] = useState<'demo' | 'supabase'>('demo');
+  const [isLoading, setIsLoading] = useState(true);
   const [isDispatching, setIsDispatching] = useState('');
   const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
 
-  const todaysOrders = orders.length;
-  const activeDrivers = demoDrivers.filter((driver) => driver.status === 'Active' || driver.status === 'Available').length;
+  const activeDrivers = drivers.filter((driver) => driver.status === 'active' || driver.status === 'approved').length;
   const revenue = orders.reduce((total, order) => total + order.estimatedFeePence, 0);
   const exceptions = orders.filter((order) => order.exception || order.ageCheckRequired);
-  const dispatchQueue = orders.filter((order) => !order.driverName && ['paid', 'accepted'].includes(order.status));
+  const dispatchQueue = orders.filter((order) => !order.driverId && !order.driverName && ['draft', 'paid'].includes(order.status));
+  const activeDeliveries = orders.filter((order) =>
+    ['assigned', 'accepted', 'shopping', 'collected', 'en_route', 'delivered'].includes(order.status)
+  );
+  const completedDeliveries = orders.filter((order) => order.status === 'completed');
 
   const cards = useMemo(
     () => [
-      { label: "Today's orders", value: String(todaysOrders), icon: PackageSearch },
+      { label: "Today's orders", value: String(orders.length), icon: PackageSearch },
       { label: 'Active drivers', value: String(activeDrivers), icon: Bike },
       { label: 'Est. revenue', value: formatMoney(revenue), icon: PoundSterling },
       { label: 'Exceptions', value: String(exceptions.length), icon: AlertTriangle },
     ],
-    [activeDrivers, exceptions.length, revenue, todaysOrders]
+    [activeDrivers, exceptions.length, orders.length, revenue]
   );
 
+  useEffect(() => {
+    loadDashboard();
+  }, []);
+
+  async function loadDashboard() {
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/operations/summary', { cache: 'no-store' });
+      const envelope = (await response.json()) as { data?: OperationsPayload; error?: string };
+      if (!response.ok) throw new Error(envelope.error ?? 'Could not load FC dashboard.');
+      const payload = envelope.data ?? { mode: 'demo', orders: [], drivers: [] };
+
+      setOrders(
+        (payload.orders ?? []).map((order) => ({
+          ...order,
+          exception: order.ageCheckRequired ? 'ID check required' : undefined,
+        }))
+      );
+      setDrivers(payload.drivers ?? []);
+      setMode(payload.mode ?? 'demo');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not load FC dashboard.');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   async function dispatch(order: FcOrder) {
+    const driver = drivers.find((candidate) => candidate.available !== false) ?? drivers[0];
     setIsDispatching(order.id);
     setMessage('');
+    setError('');
 
     const response = await fetch('/api/dispatch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orderId: order.id, driver: { name: 'Doorin5 Driver', activeJobs: 1 } }),
+      body: JSON.stringify({ orderId: order.id, driverId: driver?.id, driverName: driver?.name }),
     });
-    const payload = await response.json();
+    const envelope = await response.json();
+    const payload = envelope.data ?? envelope;
     setIsDispatching('');
 
     if (!response.ok) {
-      setMessage(payload.error ?? 'Could not dispatch order.');
+      setError(envelope.error ?? payload.error ?? 'Could not dispatch order.');
       return;
     }
 
-    setOrders((current) =>
-      current.map((item) =>
-        item.id === order.id ? { ...item, driverName: payload.order?.driverName ?? 'Doorin5 Driver', status: 'accepted' } : item
-      )
-    );
-    setMessage(`${order.id} dispatched to ${payload.order?.driverName ?? 'Doorin5 Driver'}.`);
+    if (payload.order) {
+      setOrders((current) => current.map((item) => (item.id === order.id ? { ...item, ...payload.order } : item)));
+    }
+
+    setMessage(`${order.id} assigned to ${payload.order?.driverName ?? driver?.name ?? 'Doorin5 Driver'}.`);
+    await loadDashboard();
   }
 
   return (
@@ -78,9 +111,14 @@ export default function FcDashboard() {
               Back to Doorin5
             </Link>
             <h1 className="mt-3 text-3xl font-black">FC dashboard</h1>
-            <p className="mt-1 text-gray-600">Dispatcher view for orders, drivers, exceptions, and demo-safe operations.</p>
+            <p className="mt-1 text-gray-600">
+              Persistent dispatch control for orders, drivers, exceptions, and lifecycle status.
+            </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
+            <span className="rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-bold text-gray-700">
+              {mode === 'supabase' ? 'Supabase live' : 'Demo fallback'}
+            </span>
             <Link href="/order" className="rounded-lg bg-green-700 px-4 py-3 text-sm font-bold text-white">
               Create customer order
             </Link>
@@ -100,14 +138,21 @@ export default function FcDashboard() {
           ))}
         </section>
 
+        {isLoading && (
+          <p className="mt-5 flex items-center gap-2 rounded-lg bg-gray-50 p-4 text-sm font-bold text-gray-700">
+            <Loader2 className="animate-spin" size={18} />
+            Loading operations
+          </p>
+        )}
         {message && <p className="mt-5 rounded-lg bg-green-50 p-4 text-sm font-bold text-green-800">{message}</p>}
+        {error && <p className="mt-5 rounded-lg bg-red-50 p-4 text-sm font-bold text-red-700">{error}</p>}
 
         <div className="mt-6 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-xl font-black">Dispatch queue</h2>
-                <p className="text-sm text-gray-600">Paid orders waiting for assignment.</p>
+                <p className="text-sm text-gray-600">Orders waiting for a driver assignment.</p>
               </div>
               <span className="rounded-full bg-gray-950 px-3 py-1 text-sm font-bold text-white">{dispatchQueue.length} waiting</span>
             </div>
@@ -134,11 +179,11 @@ export default function FcDashboard() {
                     <button
                       type="button"
                       onClick={() => dispatch(order)}
-                      disabled={isDispatching === order.id}
+                      disabled={isDispatching === order.id || drivers.length === 0}
                       className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-green-700 px-4 py-3 text-sm font-bold text-white disabled:bg-gray-400"
                     >
                       {isDispatching === order.id ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
-                      Dispatch to Doorin5 Driver
+                      Assign driver
                     </button>
                   </article>
                 ))
@@ -148,44 +193,28 @@ export default function FcDashboard() {
             </div>
           </section>
 
-          <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-            <h2 className="text-xl font-black">Today's orders</h2>
-            <div className="mt-4 overflow-hidden rounded-lg border border-gray-200">
-              <div className="grid grid-cols-[1fr_0.8fr_0.8fr] bg-gray-950 px-4 py-3 text-sm font-bold text-white">
-                <span>Order</span>
-                <span>Status</span>
-                <span>Driver</span>
-              </div>
-              {orders.map((order) => (
-                <div key={order.id} className="grid grid-cols-[1fr_0.8fr_0.8fr] gap-3 border-t border-gray-200 px-4 py-3 text-sm">
-                  <span>
-                    <strong>{order.id}</strong>
-                    <br />
-                    <span className="text-gray-600">{order.postcode}</span>
-                  </span>
-                  <span>{statusLabels[order.status]}</span>
-                  <span>{order.driverName ?? 'Unassigned'}</span>
-                </div>
-              ))}
-            </div>
-          </section>
+          <OrderTable title="Active deliveries" orders={activeDeliveries} empty="No active deliveries." />
         </div>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
           <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
             <h2 className="text-xl font-black">Active drivers</h2>
             <div className="mt-4 space-y-3">
-              {demoDrivers.map((driver) => (
-                <div key={driver.id} className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4">
-                  <div>
-                    <p className="font-black">{driver.name}</p>
-                    <p className="text-sm text-gray-600">
-                      {driver.status} · {driver.activeJobs} active jobs
-                    </p>
+              {drivers.length > 0 ? (
+                drivers.map((driver) => (
+                  <div key={driver.id} className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <div>
+                      <p className="font-black">{driver.name}</p>
+                      <p className="text-sm text-gray-600">
+                        {driver.status ?? 'pending'} · {driver.activeJobs ?? 0} active jobs
+                      </p>
+                    </div>
+                    <span className="text-sm font-black">{driver.available === false ? 'Paused' : 'Available'}</span>
                   </div>
-                  <span className="font-black">{formatMoney(driver.earningsPence)}</span>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="rounded-lg bg-gray-50 p-4 text-sm font-semibold text-gray-600">No driver profiles available.</p>
+              )}
             </div>
           </section>
 
@@ -206,8 +235,42 @@ export default function FcDashboard() {
             </div>
           </section>
         </div>
+
+        <div className="mt-6">
+          <OrderTable title="Completed deliveries" orders={completedDeliveries} empty="No completed deliveries yet." />
+        </div>
       </div>
     </main>
+  );
+}
+
+function OrderTable({ title, orders, empty }: { title: string; orders: FcOrder[]; empty: string }) {
+  return (
+    <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <h2 className="text-xl font-black">{title}</h2>
+      <div className="mt-4 overflow-hidden rounded-lg border border-gray-200">
+        <div className="grid grid-cols-[1fr_0.8fr_0.8fr] bg-gray-950 px-4 py-3 text-sm font-bold text-white">
+          <span>Order</span>
+          <span>Status</span>
+          <span>Driver</span>
+        </div>
+        {orders.length > 0 ? (
+          orders.map((order) => (
+            <div key={order.id} className="grid grid-cols-[1fr_0.8fr_0.8fr] gap-3 border-t border-gray-200 px-4 py-3 text-sm">
+              <span>
+                <strong>{order.id}</strong>
+                <br />
+                <span className="text-gray-600">{order.postcode}</span>
+              </span>
+              <span>{statusLabels[order.status]}</span>
+              <span>{order.driverName ?? 'Unassigned'}</span>
+            </div>
+          ))
+        ) : (
+          <p className="border-t border-gray-200 px-4 py-3 text-sm font-semibold text-gray-600">{empty}</p>
+        )}
+      </div>
+    </section>
   );
 }
 

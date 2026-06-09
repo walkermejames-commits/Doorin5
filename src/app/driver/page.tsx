@@ -2,73 +2,102 @@
 
 import Link from 'next/link';
 import type React from 'react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Camera, CheckCircle2, Clock, Loader2, MapPinned, PackageCheck, PoundSterling } from 'lucide-react';
-import { demoOrders } from '../../lib/mock-orders';
 import { DeliveryOrder, formatMoney, nextStatuses, statusLabels } from '../../lib/local-delivery';
 
 type DriverOrder = DeliveryOrder & {
-  driverName?: string;
-  distanceMiles: number;
-  pickupEta: string;
+  distanceMiles?: number;
+  pickupEta?: string;
 };
 
-const initialOrders: DriverOrder[] = demoOrders.map((order, index) => ({
-  ...order,
-  driverName: index === 0 ? 'Doorin5 Driver' : undefined,
-  distanceMiles: index === 0 ? 1.4 : 2.1,
-  pickupEta: index === 0 ? '8 min' : '14 min',
-}));
+type DriverPayload = {
+  mode: 'demo' | 'supabase';
+  orders: DriverOrder[];
+  error?: string;
+};
 
 export default function DriverDashboard() {
-  const [orders, setOrders] = useState(initialOrders);
-  const [selectedProofOrder, setSelectedProofOrder] = useState(initialOrders[0]?.id ?? '');
+  const [orders, setOrders] = useState<DriverOrder[]>([]);
+  const [mode, setMode] = useState<'demo' | 'supabase'>('demo');
+  const [selectedProofOrder, setSelectedProofOrder] = useState('');
   const [proofNote, setProofNote] = useState('');
   const [recipientConfirmed, setRecipientConfirmed] = useState(false);
   const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [busyOrderId, setBusyOrderId] = useState('');
 
-  const activeJobs = orders.filter((order) => order.driverName);
-  const availableJobs = orders.filter((order) => !order.driverName);
-  const earnings = activeJobs.reduce((total, order) => total + order.estimatedFeePence, 0);
-
+  const assignedJobs = orders.filter((order) => order.status === 'assigned');
+  const activeJobs = orders.filter((order) => ['accepted', 'shopping', 'collected', 'en_route', 'delivered'].includes(order.status));
+  const completedJobs = orders.filter((order) => order.status === 'completed');
+  const earnings = [...activeJobs, ...completedJobs].reduce((total, order) => total + order.estimatedFeePence, 0);
   const selectedProof = orders.find((order) => order.id === selectedProofOrder) ?? activeJobs[0];
+
+  useEffect(() => {
+    loadJobs();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedProofOrder && activeJobs[0]) setSelectedProofOrder(activeJobs[0].id);
+  }, [activeJobs, selectedProofOrder]);
+
+  async function loadJobs() {
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/driver/jobs', { cache: 'no-store' });
+      const envelope = (await response.json()) as { data?: DriverPayload; error?: string };
+      if (!response.ok) throw new Error(envelope.error ?? 'Could not load driver jobs.');
+      const payload = envelope.data ?? { mode: 'demo', orders: [] };
+      setOrders((payload.orders ?? []).map(addRouteHints));
+      setMode(payload.mode ?? 'demo');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not load driver jobs.');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function progressOrder(order: DriverOrder) {
     const nextStatus = nextStatuses[order.status];
     if (!nextStatus) return;
 
+    setBusyOrderId(order.id);
     setMessage('');
+    setError('');
+
     const response = await fetch('/api/driver/progress', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ orderId: order.id, status: order.status }),
     });
-    const payload = await response.json();
+    const envelope = await response.json();
+    const payload = envelope.data ?? envelope;
+    setBusyOrderId('');
 
     if (!response.ok) {
-      setMessage(payload.error ?? 'Could not update status.');
+      setError(envelope.error ?? payload.error ?? 'Could not update status.');
       return;
     }
 
-    setOrders((current) =>
-      current.map((item) => (item.id === order.id ? { ...item, status: payload.status ?? nextStatus } : item))
-    );
-    setMessage(`${order.id} moved to ${statusLabels[payload.status as keyof typeof statusLabels] ?? 'next status'}.`);
-  }
+    if (payload.order) {
+      setOrders((current) => current.map((item) => (item.id === order.id ? addRouteHints(payload.order) : item)));
+    } else {
+      setOrders((current) => current.map((item) => (item.id === order.id ? { ...item, status: payload.status ?? nextStatus } : item)));
+    }
 
-  function acceptJob(order: DriverOrder) {
-    setOrders((current) =>
-      current.map((item) => (item.id === order.id ? { ...item, driverName: 'Doorin5 Driver', status: 'accepted' } : item))
-    );
-    setSelectedProofOrder(order.id);
-    setMessage(`${order.id} accepted. Pickup details are now active.`);
+    setMessage(`${order.id} moved to ${statusLabels[payload.status as keyof typeof statusLabels] ?? 'next status'}.`);
+    await loadJobs();
   }
 
   async function saveProof() {
     if (!selectedProof) return;
     setIsSaving(true);
     setMessage('');
+    setError('');
 
     const response = await fetch('/api/driver/complete', {
       method: 'POST',
@@ -79,26 +108,28 @@ export default function DriverDashboard() {
         recipientConfirmed,
       }),
     });
-    const payload = await response.json();
+    const envelope = await response.json();
+    const payload = envelope.data ?? envelope;
     setIsSaving(false);
 
     if (!response.ok) {
-      setMessage(payload.errors?.join(' ') ?? payload.error ?? 'Proof details could not be saved.');
+      setError(envelope.details?.join(' ') ?? envelope.error ?? payload.errors?.join(' ') ?? payload.error ?? 'Proof details could not be saved.');
       return;
     }
 
     setProofNote('');
     setRecipientConfirmed(false);
-    setMessage(`Proof placeholder saved for ${payload.orderId}.`);
+    setMessage(`Delivery completed for ${payload.order?.id ?? payload.orderId}.`);
+    await loadJobs();
   }
 
   const summaryCards = useMemo(
     () => [
+      { label: 'Assigned jobs', value: String(assignedJobs.length), icon: Clock },
       { label: 'Active jobs', value: String(activeJobs.length), icon: PackageCheck },
-      { label: 'Available jobs', value: String(availableJobs.length), icon: Clock },
       { label: 'Est. earnings', value: formatMoney(earnings), icon: PoundSterling },
     ],
-    [activeJobs.length, availableJobs.length, earnings]
+    [activeJobs.length, assignedJobs.length, earnings]
   );
 
   return (
@@ -111,11 +142,16 @@ export default function DriverDashboard() {
               Back to Doorin5
             </Link>
             <h1 className="mt-3 text-3xl font-black">Driver dashboard</h1>
-            <p className="mt-1 text-gray-600">Demo jobs, live status updates, and delivery proof capture.</p>
+            <p className="mt-1 text-gray-600">Assigned jobs, live status updates, and delivery proof capture.</p>
           </div>
-          <Link href="/fc" className="rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-bold hover:border-gray-500">
-            FC view
-          </Link>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <span className="rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-bold text-gray-700">
+              {mode === 'supabase' ? 'Supabase live' : 'Demo fallback'}
+            </span>
+            <Link href="/fc" className="rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-bold hover:border-gray-500">
+              FC view
+            </Link>
+          </div>
         </div>
 
         <section className="grid gap-3 sm:grid-cols-3">
@@ -128,19 +164,45 @@ export default function DriverDashboard() {
           ))}
         </section>
 
+        {loading && (
+          <p className="mt-5 flex items-center gap-2 rounded-lg bg-gray-50 p-4 text-sm font-bold text-gray-700">
+            <Loader2 className="animate-spin" size={18} />
+            Loading jobs
+          </p>
+        )}
         {message && <p className="mt-5 rounded-lg bg-green-50 p-4 text-sm font-bold text-green-800">{message}</p>}
+        {error && <p className="mt-5 rounded-lg bg-red-50 p-4 text-sm font-bold text-red-700">{error}</p>}
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_0.82fr]">
           <section className="space-y-5">
-            <DashboardPanel title="Active jobs" empty="No active jobs yet. Accept an available job to start.">
-              {activeJobs.map((order) => (
-                <JobCard key={order.id} order={order} actionLabel={nextStatuses[order.status] ? 'Move status' : 'Complete'} onAction={() => progressOrder(order)} />
+            <DashboardPanel title="Assigned jobs" empty="No assigned jobs waiting for acceptance.">
+              {assignedJobs.map((order) => (
+                <JobCard
+                  key={order.id}
+                  order={order}
+                  actionLabel="Accept job"
+                  busy={busyOrderId === order.id}
+                  onAction={() => progressOrder(order)}
+                />
               ))}
             </DashboardPanel>
 
-            <DashboardPanel title="Available jobs" empty="No available jobs right now. FC dispatch queue is clear.">
-              {availableJobs.map((order) => (
-                <JobCard key={order.id} order={order} actionLabel="Accept job" onAction={() => acceptJob(order)} />
+            <DashboardPanel title="Active jobs" empty="No active jobs yet. Accept an assigned job to start.">
+              {activeJobs.map((order) => (
+                <JobCard
+                  key={order.id}
+                  order={order}
+                  actionLabel={order.status === 'delivered' ? 'Save proof to complete' : 'Move status'}
+                  busy={busyOrderId === order.id}
+                  onAction={() => {
+                    if (order.status === 'delivered') {
+                      setSelectedProofOrder(order.id);
+                      setMessage('Add proof details to complete this delivery.');
+                      return;
+                    }
+                    progressOrder(order);
+                  }}
+                />
               ))}
             </DashboardPanel>
           </section>
@@ -152,8 +214,7 @@ export default function DriverDashboard() {
                 Navigation placeholder
               </p>
               <p className="mt-2 text-sm leading-6 text-gray-600">
-                Real driver launch should add pickup and dropoff map links here. Demo mode keeps the route manual so FC
-                can confirm addresses first.
+                Real driver launch should add pickup and dropoff map links here. The operational status workflow now persists first.
               </p>
             </div>
 
@@ -161,7 +222,7 @@ export default function DriverDashboard() {
               <Camera className="text-green-700" size={22} />
               <div>
                 <h2 className="text-xl font-black">Proof of delivery</h2>
-                <p className="text-sm text-gray-600">Placeholder capture for MVP handover evidence.</p>
+                <p className="text-sm text-gray-600">Save handover evidence and complete the order.</p>
               </div>
             </div>
 
@@ -202,7 +263,7 @@ export default function DriverDashboard() {
                   className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gray-950 px-5 py-3 font-bold text-white disabled:bg-gray-400"
                 >
                   {isSaving && <Loader2 className="animate-spin" size={18} />}
-                  Save proof placeholder
+                  Complete delivery
                 </button>
               </div>
             ) : (
@@ -215,6 +276,14 @@ export default function DriverDashboard() {
       </div>
     </main>
   );
+}
+
+function addRouteHints(order: DriverOrder, index = 0): DriverOrder {
+  return {
+    ...order,
+    distanceMiles: order.distanceMiles ?? (index % 2 === 0 ? 1.4 : 2.1),
+    pickupEta: order.pickupEta ?? (index % 2 === 0 ? '8 min' : '14 min'),
+  };
 }
 
 function DashboardPanel({ title, empty, children }: { title: string; empty: string; children: React.ReactNode }) {
@@ -230,7 +299,17 @@ function DashboardPanel({ title, empty, children }: { title: string; empty: stri
   );
 }
 
-function JobCard({ order, actionLabel, onAction }: { order: DriverOrder; actionLabel: string; onAction: () => void }) {
+function JobCard({
+  order,
+  actionLabel,
+  busy,
+  onAction,
+}: {
+  order: DriverOrder;
+  actionLabel: string;
+  busy: boolean;
+  onAction: () => void;
+}) {
   const isComplete = order.status === 'completed' || order.status === 'cancelled';
 
   return (
@@ -245,7 +324,7 @@ function JobCard({ order, actionLabel, onAction }: { order: DriverOrder; actionL
       </div>
       <div className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
         <Info label="Pickup" value={order.pickupHint} />
-        <Info label="ETA" value={order.pickupEta} />
+        <Info label="ETA" value={order.pickupEta ?? '8 min'} />
         <Info label="Fee" value={formatMoney(order.estimatedFeePence)} />
       </div>
       <ul className="mt-4 space-y-2 text-sm">
@@ -265,10 +344,10 @@ function JobCard({ order, actionLabel, onAction }: { order: DriverOrder; actionL
       <button
         type="button"
         onClick={onAction}
-        disabled={isComplete}
+        disabled={isComplete || busy}
         className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-green-700 px-4 py-3 text-sm font-bold text-white disabled:bg-gray-400"
       >
-        <CheckCircle2 size={18} />
+        {busy ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
         {isComplete ? 'No further action' : actionLabel}
       </button>
     </article>

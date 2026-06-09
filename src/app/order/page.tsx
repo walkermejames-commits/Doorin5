@@ -114,11 +114,12 @@ export default function OrderPage() {
       });
 
       const payload = await response.json();
+      const data = payload.data ?? payload;
       if (!response.ok) {
-        throw new Error(payload?.errors?.join(' ') || payload?.error || 'Order could not be created.');
+        throw new Error(payload?.details?.join(' ') || payload?.errors?.join(' ') || payload?.error || 'Order could not be created.');
       }
 
-      setCreatedOrderId(payload.order?.id ?? 'demo-order');
+      setCreatedOrderId(data.order?.id ?? 'demo-order');
       setStep('success');
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Order could not be created.');
@@ -375,8 +376,11 @@ export default function OrderPage() {
                 </p>
                 <p className="mt-4 rounded-lg bg-green-50 p-3 text-sm font-bold text-green-800">Reference: {createdOrderId}</p>
                 <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+                  <Link href={`/track/${createdOrderId}`} className="rounded-lg bg-green-700 px-5 py-3 font-bold text-white">
+                    Track order
+                  </Link>
                   <Link href="/driver" className="rounded-lg bg-gray-950 px-5 py-3 font-bold text-white">
-                    View driver board
+                    Driver board
                   </Link>
                   <Link href="/fc" className="rounded-lg border border-gray-300 bg-white px-5 py-3 font-bold">
                     View FC dashboard
