@@ -26,7 +26,7 @@ export function toOperationsJobCard(order: DeliveryOrder & { driverName?: string
 }
 
 export function getOperationsSummary(orders: Array<DeliveryOrder & { driverId?: string | null; driverName?: string | null }>, drivers: DriverProfile[] = []) {
-  const paidOrders = orders.filter((order) => order.status === "paid" || order.status === "accepted" || order.status === "shopping" || order.status === "collected" || order.status === "en_route" || order.status === "delivered");
+  const paidOrders = orders.filter((order) => ["draft", "paid", "assigned", "accepted", "shopping", "collected", "en_route", "delivered"].includes(order.status));
   const assignedOrders = orders.filter((order) => Boolean(order.driverId));
   const unassignedPaidOrders = paidOrders.filter((order) => !order.driverId);
 
