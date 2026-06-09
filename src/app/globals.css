@@ -21,3 +21,18 @@ textarea,
 button {
   transition: all 0.2s ease;
 }
+
+.input {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  padding: 0.875rem 1rem;
+  color: #111827;
+  outline: none;
+}
+
+.input:focus {
+  border-color: #15803d;
+  box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.14);
+}
