@@ -1,61 +1,274 @@
 'use client';
 
-import { useState } from 'react';
+import Link from 'next/link';
+import type React from 'react';
+import { useMemo, useState } from 'react';
+import { ArrowLeft, Camera, CheckCircle2, Clock, Loader2, PackageCheck, PoundSterling } from 'lucide-react';
+import { demoOrders } from '../../lib/mock-orders';
+import { DeliveryOrder, formatMoney, nextStatuses, statusLabels } from '../../lib/local-delivery';
+
+type DriverOrder = DeliveryOrder & {
+  driverName?: string;
+  distanceMiles: number;
+  pickupEta: string;
+};
+
+const initialOrders: DriverOrder[] = demoOrders.map((order, index) => ({
+  ...order,
+  driverName: index === 0 ? 'Doorin5 Driver' : undefined,
+  distanceMiles: index === 0 ? 1.4 : 2.1,
+  pickupEta: index === 0 ? '8 min' : '14 min',
+}));
 
 export default function DriverDashboard() {
-  const [orders, setOrders] = useState([
-    { id: 1, status: 'paid', address: '123 High St, TN1 1AA', items: 'Cigarettes + Snacks', restricted: true },
-  ]);
+  const [orders, setOrders] = useState(initialOrders);
+  const [selectedProofOrder, setSelectedProofOrder] = useState(initialOrders[0]?.id ?? '');
+  const [proofNote, setProofNote] = useState('');
+  const [recipientConfirmed, setRecipientConfirmed] = useState(false);
+  const [message, setMessage] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
-  const updateStatus = (id: number, newStatus: string) => {
-    setOrders(orders.map((order) => (order.id === id ? { ...order, status: newStatus } : order)));
-    alert(`Order #${id} -> ${newStatus}`);
-  };
+  const activeJobs = orders.filter((order) => order.driverName);
+  const availableJobs = orders.filter((order) => !order.driverName);
+  const earnings = activeJobs.reduce((total, order) => total + order.estimatedFeePence, 0);
+
+  const selectedProof = orders.find((order) => order.id === selectedProofOrder) ?? activeJobs[0];
+
+  async function progressOrder(order: DriverOrder) {
+    const nextStatus = nextStatuses[order.status];
+    if (!nextStatus) return;
+
+    setMessage('');
+    const response = await fetch('/api/driver/progress', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId: order.id, status: order.status }),
+    });
+    const payload = await response.json();
+
+    if (!response.ok) {
+      setMessage(payload.error ?? 'Could not update status.');
+      return;
+    }
+
+    setOrders((current) =>
+      current.map((item) => (item.id === order.id ? { ...item, status: payload.status ?? nextStatus } : item))
+    );
+    setMessage(`${order.id} moved to ${statusLabels[payload.status as keyof typeof statusLabels] ?? 'next status'}.`);
+  }
+
+  function acceptJob(order: DriverOrder) {
+    setOrders((current) =>
+      current.map((item) => (item.id === order.id ? { ...item, driverName: 'Doorin5 Driver', status: 'accepted' } : item))
+    );
+    setSelectedProofOrder(order.id);
+    setMessage(`${order.id} accepted. Pickup details are now active.`);
+  }
+
+  async function saveProof() {
+    if (!selectedProof) return;
+    setIsSaving(true);
+    setMessage('');
+
+    const response = await fetch('/api/driver/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        orderId: selectedProof.id,
+        proofNote,
+        recipientConfirmed,
+      }),
+    });
+    const payload = await response.json();
+    setIsSaving(false);
+
+    if (!response.ok) {
+      setMessage(payload.errors?.join(' ') ?? payload.error ?? 'Proof details could not be saved.');
+      return;
+    }
+
+    setProofNote('');
+    setRecipientConfirmed(false);
+    setMessage(`Proof placeholder saved for ${payload.orderId}.`);
+  }
+
+  const summaryCards = useMemo(
+    () => [
+      { label: 'Active jobs', value: String(activeJobs.length), icon: PackageCheck },
+      { label: 'Available jobs', value: String(availableJobs.length), icon: Clock },
+      { label: 'Est. earnings', value: formatMoney(earnings), icon: PoundSterling },
+    ],
+    [activeJobs.length, availableJobs.length, earnings]
+  );
 
   return (
-    <main className="mx-auto min-h-screen max-w-md px-4 py-6">
-      <h1 className="mb-6 text-3xl font-bold">Driver Dashboard</h1>
+    <main className="min-h-screen bg-[#f6f7f2] text-gray-950">
+      <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:px-8">
+        <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <div>
+            <Link href="/" className="inline-flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-gray-950">
+              <ArrowLeft size={16} />
+              Back to Doorin5
+            </Link>
+            <h1 className="mt-3 text-3xl font-black">Driver dashboard</h1>
+            <p className="mt-1 text-gray-600">Demo jobs, live status updates, and delivery proof capture.</p>
+          </div>
+          <Link href="/fc" className="rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-bold hover:border-gray-500">
+            FC view
+          </Link>
+        </div>
 
-      <div className="space-y-6">
-        {orders.map((order) => (
-          <section key={order.id} className="rounded-3xl border-2 border-gray-200 bg-white p-6">
-            <div className="mb-4 flex justify-between gap-4">
-              <div>
-                <p className="font-semibold">Order #{order.id}</p>
-                <p className="text-sm text-gray-600">{order.address}</p>
-              </div>
-              <span className="h-fit rounded-full bg-yellow-100 px-3 py-1 text-sm text-yellow-700">New</span>
+        <section className="grid gap-3 sm:grid-cols-3">
+          {summaryCards.map((card) => (
+            <div key={card.label} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+              <card.icon className="text-green-700" size={22} />
+              <p className="mt-4 text-sm font-bold text-gray-500">{card.label}</p>
+              <p className="mt-1 text-3xl font-black">{card.value}</p>
             </div>
+          ))}
+        </section>
 
-            <p>
-              <strong>Items:</strong> {order.items}
-            </p>
+        {message && <p className="mt-5 rounded-lg bg-green-50 p-4 text-sm font-bold text-green-800">{message}</p>}
 
-            {order.restricted && <div className="mt-3 text-sm font-medium text-red-600">Age/ID check required</div>}
+        <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_0.82fr]">
+          <section className="space-y-5">
+            <DashboardPanel title="Active jobs" empty="No active jobs yet. Accept an available job to start.">
+              {activeJobs.map((order) => (
+                <JobCard key={order.id} order={order} actionLabel={nextStatuses[order.status] ? 'Move status' : 'Complete'} onAction={() => progressOrder(order)} />
+              ))}
+            </DashboardPanel>
 
-            <div className="mt-6 grid grid-cols-2 gap-3">
-              <button onClick={() => updateStatus(order.id, 'accepted')} className="rounded-xl bg-green-600 py-3 text-white">
-                Accept
-              </button>
-              <button onClick={() => updateStatus(order.id, 'shopping')} className="rounded-xl bg-blue-600 py-3 text-white">
-                Shopping
-              </button>
-              <button
-                onClick={() => updateStatus(order.id, 'on_the_way')}
-                className="rounded-xl bg-purple-600 py-3 text-white"
-              >
-                On The Way
-              </button>
-              <button
-                onClick={() => updateStatus(order.id, 'delivered')}
-                className="rounded-xl bg-emerald-600 py-3 text-white"
-              >
-                Delivered + ID
-              </button>
-            </div>
+            <DashboardPanel title="Available jobs" empty="No available jobs right now. FC dispatch queue is clear.">
+              {availableJobs.map((order) => (
+                <JobCard key={order.id} order={order} actionLabel="Accept job" onAction={() => acceptJob(order)} />
+              ))}
+            </DashboardPanel>
           </section>
-        ))}
+
+          <aside className="h-fit rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center gap-3">
+              <Camera className="text-green-700" size={22} />
+              <div>
+                <h2 className="text-xl font-black">Proof of delivery</h2>
+                <p className="text-sm text-gray-600">Placeholder capture for MVP handover evidence.</p>
+              </div>
+            </div>
+
+            {activeJobs.length > 0 ? (
+              <div className="mt-5 space-y-4">
+                <label className="block">
+                  <span className="text-sm font-bold">Job</span>
+                  <select value={selectedProofOrder} onChange={(event) => setSelectedProofOrder(event.target.value)} className="input mt-2">
+                    {activeJobs.map((order) => (
+                      <option key={order.id} value={order.id}>
+                        {order.id} - {order.postcode}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="text-sm font-bold">Proof note</span>
+                  <textarea
+                    value={proofNote}
+                    onChange={(event) => setProofNote(event.target.value)}
+                    className="input mt-2 min-h-28"
+                    placeholder="e.g. Handed to customer at front door. ID checked."
+                  />
+                </label>
+                <label className="flex items-start gap-3 text-sm font-semibold text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={recipientConfirmed}
+                    onChange={(event) => setRecipientConfirmed(event.target.checked)}
+                    className="mt-1"
+                  />
+                  Recipient confirmed handover
+                </label>
+                <button
+                  type="button"
+                  onClick={saveProof}
+                  disabled={isSaving}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gray-950 px-5 py-3 font-bold text-white disabled:bg-gray-400"
+                >
+                  {isSaving && <Loader2 className="animate-spin" size={18} />}
+                  Save proof placeholder
+                </button>
+              </div>
+            ) : (
+              <p className="mt-5 rounded-lg bg-gray-50 p-4 text-sm font-semibold text-gray-600">
+                Proof capture appears after a driver accepts a job.
+              </p>
+            )}
+          </aside>
+        </div>
       </div>
     </main>
+  );
+}
+
+function DashboardPanel({ title, empty, children }: { title: string; empty: string; children: React.ReactNode }) {
+  const hasChildren = Array.isArray(children) ? children.length > 0 : Boolean(children);
+
+  return (
+    <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <h2 className="text-xl font-black">{title}</h2>
+      <div className="mt-4 space-y-4">
+        {hasChildren ? children : <p className="rounded-lg bg-gray-50 p-4 text-sm font-semibold text-gray-600">{empty}</p>}
+      </div>
+    </section>
+  );
+}
+
+function JobCard({ order, actionLabel, onAction }: { order: DriverOrder; actionLabel: string; onAction: () => void }) {
+  const isComplete = order.status === 'completed' || order.status === 'cancelled';
+
+  return (
+    <article className="rounded-lg border border-gray-200 bg-[#f6f7f2] p-4">
+      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+        <div>
+          <p className="text-sm font-bold text-gray-500">{order.id}</p>
+          <h3 className="text-lg font-black">{order.customerName}</h3>
+          <p className="mt-1 text-sm text-gray-600">{order.dropoffAddress}</p>
+        </div>
+        <span className="w-fit rounded-full bg-gray-950 px-3 py-1 text-xs font-bold text-white">{statusLabels[order.status]}</span>
+      </div>
+      <div className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
+        <Info label="Pickup" value={order.pickupHint} />
+        <Info label="ETA" value={order.pickupEta} />
+        <Info label="Fee" value={formatMoney(order.estimatedFeePence)} />
+      </div>
+      <ul className="mt-4 space-y-2 text-sm">
+        {order.items.map((item) => (
+          <li key={`${order.id}-${item.name}`} className="flex justify-between rounded-lg bg-white px-3 py-2">
+            <span>
+              {item.name}
+              {item.ageRestricted ? ' (ID)' : ''}
+            </span>
+            <span className="font-bold">x{item.quantity}</span>
+          </li>
+        ))}
+      </ul>
+      {order.ageCheckRequired && (
+        <p className="mt-3 rounded-lg bg-amber-50 p-3 text-sm font-bold text-amber-900">Check valid photo ID before handover.</p>
+      )}
+      <button
+        type="button"
+        onClick={onAction}
+        disabled={isComplete}
+        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-green-700 px-4 py-3 text-sm font-bold text-white disabled:bg-gray-400"
+      >
+        <CheckCircle2 size={18} />
+        {isComplete ? 'No further action' : actionLabel}
+      </button>
+    </article>
+  );
+}
+
+function Info({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-white p-3">
+      <p className="text-xs font-bold uppercase tracking-wide text-gray-500">{label}</p>
+      <p className="mt-1 font-semibold">{value}</p>
+    </div>
   );
 }
