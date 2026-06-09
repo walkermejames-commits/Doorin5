@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import type React from 'react';
 import { useMemo, useState } from 'react';
-import { ArrowLeft, Camera, CheckCircle2, Clock, Loader2, PackageCheck, PoundSterling } from 'lucide-react';
+import { ArrowLeft, Camera, CheckCircle2, Clock, Loader2, MapPinned, PackageCheck, PoundSterling } from 'lucide-react';
 import { demoOrders } from '../../lib/mock-orders';
 import { DeliveryOrder, formatMoney, nextStatuses, statusLabels } from '../../lib/local-delivery';
 
@@ -146,6 +146,17 @@ export default function DriverDashboard() {
           </section>
 
           <aside className="h-fit rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="mb-5 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4">
+              <p className="flex items-center gap-2 text-sm font-black text-gray-900">
+                <MapPinned size={18} className="text-green-700" />
+                Navigation placeholder
+              </p>
+              <p className="mt-2 text-sm leading-6 text-gray-600">
+                Real driver launch should add pickup and dropoff map links here. Demo mode keeps the route manual so FC
+                can confirm addresses first.
+              </p>
+            </div>
+
             <div className="flex items-center gap-3">
               <Camera className="text-green-700" size={22} />
               <div>

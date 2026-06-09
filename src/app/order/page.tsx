@@ -393,6 +393,21 @@ export default function OrderPage() {
               Includes a local delivery fee estimate. FC can confirm unusual pickups, heavy items, or out-of-area
               requests before payment.
             </p>
+            <div className="mt-5 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm">
+              <div className="flex justify-between gap-4">
+                <span className="text-gray-600">Local delivery</span>
+                <span className="font-bold">{formatMoney(estimatedFee - (ageCheckRequired ? 200 : 0))}</span>
+              </div>
+              {ageCheckRequired && (
+                <div className="mt-2 flex justify-between gap-4">
+                  <span className="text-gray-600">ID check</span>
+                  <span className="font-bold">{formatMoney(200)}</span>
+                </div>
+              )}
+              <div className="mt-3 border-t border-gray-200 pt-3 text-xs font-semibold text-gray-500">
+                Goods are paid or reimbursed separately unless FC confirms a combined checkout.
+              </div>
+            </div>
             <div className="mt-5 space-y-3 text-sm">
               <SummaryRow label="Area" value={postcode || 'TN1 demo estimate'} compact />
               <SummaryRow label="Urgency" value={urgency} compact />

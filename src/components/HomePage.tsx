@@ -1,4 +1,4 @@
-import { ArrowRight, BadgeCheck, Clock, MapPin, ShieldCheck, Truck } from 'lucide-react';
+import { ArrowRight, BadgeCheck, Clock, MapPin, Route, ShieldCheck, Sparkles, Truck } from 'lucide-react';
 import Link from 'next/link';
 import { serviceAreas } from '../lib/local-delivery';
 
@@ -9,6 +9,18 @@ const trustSignals = [
 ];
 
 const services = ['Shop runs', 'Takeaway pickup', 'Pharmacy essentials', 'Restricted items with ID checks'];
+
+const pricingRows = [
+  { label: 'Core TN1/TN2/TN4 run', value: 'from £5.99' },
+  { label: 'Wider local run', value: 'from £8.99' },
+  { label: 'Restricted-item ID check', value: '+£2.00' },
+];
+
+const reasons = [
+  'Manual FC dispatch keeps the first pilot controlled.',
+  'Customers see clear service coverage before ordering.',
+  'Driver and FC dashboards show the whole operating loop.',
+];
 
 export default function HomePage() {
   return (
@@ -117,12 +129,56 @@ export default function HomePage() {
               Doorin5 starts small so FC can manually dispatch orders, protect service quality, and learn which local
               runs customers actually need.
             </p>
+            <div className="mt-5 rounded-xl border border-green-100 bg-green-50 p-4">
+              <p className="flex items-center gap-2 text-sm font-black text-green-900">
+                <Route size={18} />
+                Coverage rule
+              </p>
+              <p className="mt-2 text-sm leading-6 text-green-900">
+                Fastest demo pricing is available for TN1, TN2, and TN4. TN3, TN9, and TN10 can be reviewed by FC before
+                confirmation.
+              </p>
+            </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {serviceAreas.map((area) => (
               <div key={area} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-[#f6f7f2] p-4">
                 <BadgeCheck className="text-green-700" size={20} />
                 <span className="font-semibold">{area}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto grid max-w-6xl gap-6 px-5 py-10 md:grid-cols-2 md:px-8">
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-bold uppercase tracking-wide text-green-700">Pricing</p>
+          <h2 className="mt-2 text-3xl font-black">Simple fees before FC confirms.</h2>
+          <p className="mt-3 leading-7 text-gray-700">
+            Doorin5 shows customers a local delivery estimate up front. FC can still review unusual pickup requests,
+            heavier items, or wider-area jobs before taking payment.
+          </p>
+          <div className="mt-5 divide-y divide-gray-100 rounded-lg border border-gray-200">
+            {pricingRows.map((row) => (
+              <div key={row.label} className="flex items-center justify-between gap-4 p-4">
+                <span className="font-semibold text-gray-700">{row.label}</span>
+                <span className="font-black">{row.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-gray-200 bg-gray-950 p-6 text-white shadow-sm">
+          <p className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-green-200">
+            <Sparkles size={17} />
+            Why choose Doorin5
+          </p>
+          <h2 className="mt-2 text-3xl font-black">A small courier loop built to learn fast.</h2>
+          <div className="mt-5 space-y-3">
+            {reasons.map((reason) => (
+              <div key={reason} className="rounded-lg bg-white/10 p-4 font-semibold">
+                {reason}
               </div>
             ))}
           </div>
