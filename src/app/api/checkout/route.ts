@@ -1,6 +1,6 @@
 import Stripe from "stripe";
 import { createMockCheckoutSession } from "../../../lib/checkout";
-import { findDemoOrder } from "../../../lib/mock-orders";
+import { findDemoOrder, findDemoQuote } from "../../../lib/mock-orders";
 import { jsonError, jsonOk } from "../../../lib/http";
 import { getOrderById } from "../../../lib/order-repository";
 import { getRuntimeConfig } from "../../../lib/runtime-config";
@@ -23,6 +23,11 @@ export async function POST(request: Request) {
     return jsonError("Order could not be found.", 404);
   }
 
+  const quote = order.quote ?? findDemoQuote(order.id);
+  if (!quote || quote.quoteStatus !== "accepted") {
+    return jsonError("An accepted FC quote is required before checkout.", 400);
+  }
+
   const config = getRuntimeConfig();
   if (config.stripeReady) {
     try {
@@ -35,15 +40,15 @@ export async function POST(request: Request) {
           {
             price_data: {
               currency: "gbp",
-              product_data: { name: `Doorin5 delivery ${order.id}` },
-              unit_amount: order.estimatedFeePence,
+              product_data: { name: `Doorin5 quote ${quote.id}` },
+              unit_amount: quote.totalPence,
             },
             quantity: 1,
           },
         ],
-        metadata: { orderId: order.id, source: "doorin5-pilot" },
+        metadata: { orderId: order.id, quoteId: quote.id, source: "doorin5-fc-led-quote" },
         success_url: `${appUrl}/track/${order.id}?checkout=success`,
-        cancel_url: `${appUrl}/order?checkout=cancelled`,
+        cancel_url: `${appUrl}/quote/${order.id}?checkout=cancelled`,
       });
 
       return jsonOk(
@@ -52,7 +57,8 @@ export async function POST(request: Request) {
           sessionId: session.id,
           checkoutUrl: session.url,
           orderId: order.id,
-          amountTotalPence: order.estimatedFeePence,
+          quoteId: quote.id,
+          amountTotalPence: quote.totalPence,
           currency: "gbp",
           status: "open",
           createdAt: new Date().toISOString(),
@@ -65,8 +71,12 @@ export async function POST(request: Request) {
     }
   }
 
-  return jsonOk({
-    ...createMockCheckoutSession(order),
-    provider: "mock",
-  }, { status: 201 });
+  return jsonOk(
+    {
+      ...createMockCheckoutSession(order, quote),
+      provider: "mock",
+      quoteId: quote.id,
+    },
+    { status: 201 }
+  );
 }

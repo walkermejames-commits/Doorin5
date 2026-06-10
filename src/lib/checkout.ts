@@ -1,4 +1,4 @@
-import { DeliveryOrder } from "./local-delivery";
+import { DeliveryOrder, DeliveryQuote } from "./local-delivery";
 
 export type MockCheckoutSession = {
   id: string;
@@ -10,14 +10,14 @@ export type MockCheckoutSession = {
   createdAt: string;
 };
 
-export function createMockCheckoutSession(order: DeliveryOrder): MockCheckoutSession {
+export function createMockCheckoutSession(order: DeliveryOrder, quote?: DeliveryQuote | null): MockCheckoutSession {
   return {
     id: `mock_checkout_${order.id}`,
     orderId: order.id,
-    amountTotalPence: order.estimatedFeePence,
+    amountTotalPence: quote?.totalPence ?? order.quote?.totalPence ?? order.estimatedFeePence,
     currency: "gbp",
     status: "open",
-    url: `/track-demo`,
+    url: `/track/${order.id}?checkout=mock`,
     createdAt: new Date().toISOString(),
   };
 }

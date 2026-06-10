@@ -2,7 +2,9 @@ import { demoOrders } from "./mock-orders";
 import { nextStatuses, statusLabels } from "./local-delivery";
 
 export function getDriverDashboardRows() {
-  return demoOrders.map((order) => {
+  return demoOrders
+    .filter((order) => order.paymentStatus === "paid" && ["assigned", "accepted", "shopping", "collected", "en_route", "delivered"].includes(order.status))
+    .map((order) => {
     const next = nextStatuses[order.status];
     return {
       id: order.id,
@@ -16,5 +18,5 @@ export function getDriverDashboardRows() {
       itemCount: order.items.reduce((total, item) => total + item.quantity, 0),
       estimatedFeePence: order.estimatedFeePence,
     };
-  });
+    });
 }

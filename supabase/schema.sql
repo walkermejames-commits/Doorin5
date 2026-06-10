@@ -1,4 +1,4 @@
--- Doorin5 local delivery MVP schema
+-- Doorin5 FC-led local delivery schema
 -- Run this in the Supabase SQL editor for a fresh project.
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
@@ -7,14 +7,18 @@ CREATE TABLE IF NOT EXISTS delivery_orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   customer_name TEXT NOT NULL,
   customer_phone TEXT NOT NULL,
+  customer_email TEXT,
   pickup_hint TEXT NOT NULL,
+  pickup_address TEXT,
   dropoff_address TEXT NOT NULL,
-  postcode TEXT NOT NULL,
+  dropoff_postcode TEXT,
+  postcode TEXT,
+  urgency TEXT NOT NULL DEFAULT 'ASAP',
   notes TEXT,
-  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','paid','assigned','accepted','shopping','collected','en_route','delivered','completed','cancelled')),
+  status TEXT NOT NULL DEFAULT 'request_submitted',
   estimated_fee_pence INTEGER NOT NULL DEFAULT 0,
   age_check_required BOOLEAN NOT NULL DEFAULT false,
-  payment_status TEXT NOT NULL DEFAULT 'unpaid' CHECK (payment_status IN ('unpaid','mock_paid','paid','refunded','failed')),
+  payment_status TEXT NOT NULL DEFAULT 'unpaid',
   stripe_session_id TEXT,
   driver_id UUID,
   driver_name TEXT,
@@ -34,6 +38,21 @@ CREATE TABLE IF NOT EXISTS delivery_order_items (
   notes TEXT,
   age_restricted BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS delivery_quotes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id UUID NOT NULL REFERENCES delivery_orders(id) ON DELETE CASCADE,
+  item_estimate_pence INTEGER NOT NULL DEFAULT 0 CHECK (item_estimate_pence >= 0),
+  delivery_fee_pence INTEGER NOT NULL DEFAULT 0 CHECK (delivery_fee_pence >= 0),
+  service_fee_pence INTEGER NOT NULL DEFAULT 0 CHECK (service_fee_pence >= 0),
+  total_pence INTEGER NOT NULL DEFAULT 0 CHECK (total_pence >= 0),
+  fc_notes TEXT,
+  quote_status TEXT NOT NULL DEFAULT 'draft',
+  expires_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  accepted_at TIMESTAMPTZ,
+  rejected_at TIMESTAMPTZ
 );
 
 CREATE TABLE IF NOT EXISTS delivery_status_events (
@@ -96,6 +115,10 @@ CREATE TABLE IF NOT EXISTS event_log_entries (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+ALTER TABLE delivery_orders ADD COLUMN IF NOT EXISTS customer_email TEXT;
+ALTER TABLE delivery_orders ADD COLUMN IF NOT EXISTS pickup_address TEXT;
+ALTER TABLE delivery_orders ADD COLUMN IF NOT EXISTS dropoff_postcode TEXT;
+ALTER TABLE delivery_orders ADD COLUMN IF NOT EXISTS urgency TEXT NOT NULL DEFAULT 'ASAP';
 ALTER TABLE delivery_orders ADD COLUMN IF NOT EXISTS assigned_at TIMESTAMPTZ;
 ALTER TABLE delivery_orders ADD COLUMN IF NOT EXISTS accepted_at TIMESTAMPTZ;
 ALTER TABLE delivery_orders ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ;
@@ -103,8 +126,7 @@ ALTER TABLE delivery_orders ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ;
 DO $$
 BEGIN
   IF EXISTS (
-    SELECT 1
-    FROM pg_constraint
+    SELECT 1 FROM pg_constraint
     WHERE conname = 'delivery_orders_status_check'
       AND conrelid = 'delivery_orders'::regclass
   ) THEN
@@ -113,14 +135,47 @@ BEGIN
 
   ALTER TABLE delivery_orders
     ADD CONSTRAINT delivery_orders_status_check
-    CHECK (status IN ('draft','paid','assigned','accepted','shopping','collected','en_route','delivered','completed','cancelled'));
+    CHECK (status IN (
+      'request_submitted','fc_reviewing','quote_sent','quote_accepted','payment_pending','paid',
+      'assigned','accepted','shopping','collected','en_route','delivered','completed','cancelled',
+      'quote_expired','quote_rejected'
+    ));
+END $$;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'delivery_orders_payment_status_check'
+      AND conrelid = 'delivery_orders'::regclass
+  ) THEN
+    ALTER TABLE delivery_orders DROP CONSTRAINT delivery_orders_payment_status_check;
+  END IF;
+
+  ALTER TABLE delivery_orders
+    ADD CONSTRAINT delivery_orders_payment_status_check
+    CHECK (payment_status IN ('unpaid','mock_paid','pending','paid','refunded','failed'));
+END $$;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'delivery_quotes_quote_status_check'
+      AND conrelid = 'delivery_quotes'::regclass
+  ) THEN
+    ALTER TABLE delivery_quotes DROP CONSTRAINT delivery_quotes_quote_status_check;
+  END IF;
+
+  ALTER TABLE delivery_quotes
+    ADD CONSTRAINT delivery_quotes_quote_status_check
+    CHECK (quote_status IN ('draft','sent','accepted','rejected','expired'));
 END $$;
 
 DO $$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1
-    FROM pg_constraint
+    SELECT 1 FROM pg_constraint
     WHERE conname = 'delivery_orders_driver_id_fkey'
       AND conrelid = 'delivery_orders'::regclass
   ) THEN
@@ -133,13 +188,16 @@ BEGIN
 END $$;
 
 CREATE INDEX IF NOT EXISTS idx_delivery_orders_status ON delivery_orders(status);
-CREATE INDEX IF NOT EXISTS idx_delivery_orders_postcode ON delivery_orders(postcode);
+CREATE INDEX IF NOT EXISTS idx_delivery_orders_payment_status ON delivery_orders(payment_status);
+CREATE INDEX IF NOT EXISTS idx_delivery_orders_postcode ON delivery_orders(COALESCE(dropoff_postcode, postcode));
 CREATE INDEX IF NOT EXISTS idx_delivery_orders_driver_id ON delivery_orders(driver_id);
 CREATE INDEX IF NOT EXISTS idx_delivery_orders_driver_status ON delivery_orders(driver_id, status);
 CREATE INDEX IF NOT EXISTS idx_delivery_orders_created_at ON delivery_orders(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_delivery_orders_completed_at ON delivery_orders(completed_at DESC);
 CREATE INDEX IF NOT EXISTS idx_delivery_orders_secure_token_hash ON delivery_orders(secure_token_hash);
 CREATE INDEX IF NOT EXISTS idx_delivery_order_items_order_id ON delivery_order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_delivery_quotes_order_id ON delivery_quotes(order_id);
+CREATE INDEX IF NOT EXISTS idx_delivery_quotes_status ON delivery_quotes(quote_status);
 CREATE INDEX IF NOT EXISTS idx_delivery_status_events_order_id ON delivery_status_events(order_id);
 CREATE INDEX IF NOT EXISTS idx_delivery_status_events_order_created_at ON delivery_status_events(order_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_delivery_links_token_hash ON delivery_links(token_hash);
@@ -147,6 +205,7 @@ CREATE INDEX IF NOT EXISTS idx_event_log_entries_target ON event_log_entries(tar
 
 ALTER TABLE delivery_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE delivery_order_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE delivery_quotes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE delivery_status_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE delivery_proofs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE age_checks ENABLE ROW LEVEL SECURITY;

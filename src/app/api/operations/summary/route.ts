@@ -30,7 +30,10 @@ export async function GET() {
 
 function buildQueues(orders: Array<{ status: string; driverId?: string | null; driverName?: string | null }>) {
   return {
-    unassigned: orders.filter((order) => ["draft", "paid"].includes(order.status) && !order.driverId && !order.driverName).length,
+    newRequests: orders.filter((order) => ["request_submitted", "fc_reviewing"].includes(order.status)).length,
+    quoteSent: orders.filter((order) => order.status === "quote_sent").length,
+    paidReady: orders.filter((order) => order.status === "paid" && !order.driverId && !order.driverName).length,
+    unassigned: orders.filter((order) => order.status === "paid" && !order.driverId && !order.driverName).length,
     active: orders.filter((order) => ["assigned", "accepted", "shopping", "collected", "en_route", "delivered"].includes(order.status)).length,
     completed: orders.filter((order) => order.status === "completed").length,
   };

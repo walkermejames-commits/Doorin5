@@ -1,12 +1,10 @@
-import { DeliveryOrder, OrderStatus } from "./local-delivery";
-
-export type PaymentStatus = "unpaid" | "mock_paid" | "paid" | "refunded" | "failed";
+import { DeliveryOrder, OrderStatus, PaymentStatus } from "./local-delivery";
 
 export type PayableOrder = Pick<DeliveryOrder, "id" | "status"> & {
   paymentStatus?: PaymentStatus;
 };
 
-const payableStatuses: OrderStatus[] = ["draft"];
+const payableStatuses: OrderStatus[] = ["quote_accepted", "payment_pending"];
 
 export function canStartCheckout(order: PayableOrder) {
   if (order.paymentStatus === "paid" || order.paymentStatus === "mock_paid") {
@@ -14,7 +12,7 @@ export function canStartCheckout(order: PayableOrder) {
   }
 
   if (!payableStatuses.includes(order.status)) {
-    return { ok: false, reason: "Order must be confirmed before checkout can begin." };
+    return { ok: false, reason: "An accepted FC quote is required before checkout can begin." };
   }
 
   return { ok: true, reason: null };
@@ -27,6 +25,6 @@ export function assertCanStartCheckout(order: PayableOrder) {
 }
 
 export function markPaymentCompleteStatus(status: OrderStatus): OrderStatus {
-  if (status === "draft") return "paid";
+  if (status === "quote_accepted" || status === "payment_pending") return "paid";
   return status;
 }

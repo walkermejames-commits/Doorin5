@@ -29,6 +29,7 @@ Open these links in your browser:
 - http://localhost:3000/order
 - http://localhost:3000/fc
 - http://localhost:3000/driver
+- http://localhost:3000/quote/demo-1001
 - http://localhost:3000/track/demo-1002
 
 ## 3) What to expect

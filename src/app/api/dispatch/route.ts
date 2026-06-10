@@ -1,6 +1,7 @@
 import { assignDemoDriverResponse } from "../../../lib/api/assign-driver";
 import { isDemoMode } from "../../../lib/demo-mode";
 import { jsonError, jsonOk } from "../../../lib/http";
+import { findDemoOrder } from "../../../lib/mock-orders";
 import { assignDriverToOrder } from "../../../lib/order-repository";
 
 export async function POST(request: Request) {
@@ -8,6 +9,10 @@ export async function POST(request: Request) {
 
   try {
     if (isDemoMode()) {
+      const order = findDemoOrder(body.orderId);
+      if (order.status !== "paid" || order.paymentStatus !== "paid") {
+        return jsonError("Only paid orders can be assigned to a driver.", 400);
+      }
       return jsonOk({ mode: "demo", ...assignDemoDriverResponse(body) }, { status: 201 });
     }
 

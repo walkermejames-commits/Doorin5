@@ -1,5 +1,9 @@
 export type OrderStatus =
-  | "draft"
+  | "request_submitted"
+  | "fc_reviewing"
+  | "quote_sent"
+  | "quote_accepted"
+  | "payment_pending"
   | "paid"
   | "assigned"
   | "accepted"
@@ -8,29 +12,56 @@ export type OrderStatus =
   | "en_route"
   | "delivered"
   | "completed"
-  | "cancelled";
+  | "cancelled"
+  | "quote_expired"
+  | "quote_rejected";
+
+export type PaymentStatus = "unpaid" | "mock_paid" | "pending" | "paid" | "refunded" | "failed";
+export type QuoteStatus = "draft" | "sent" | "accepted" | "rejected" | "expired";
 
 export type OrderItem = {
+  id?: string;
   name: string;
   quantity: number;
   notes?: string;
   ageRestricted?: boolean;
 };
 
+export type DeliveryQuote = {
+  id: string;
+  orderId: string;
+  itemEstimatePence: number;
+  deliveryFeePence: number;
+  serviceFeePence: number;
+  totalPence: number;
+  fcNotes?: string;
+  quoteStatus: QuoteStatus;
+  expiresAt?: string | null;
+  createdAt: string;
+  acceptedAt?: string | null;
+  rejectedAt?: string | null;
+};
+
 export type DeliveryOrder = {
   id: string;
   customerName: string;
   customerPhone: string;
+  customerEmail?: string;
   pickupHint: string;
+  pickupAddress?: string;
   dropoffAddress: string;
   postcode: string;
-  paymentStatus?: "unpaid" | "mock_paid" | "paid" | "refunded" | "failed";
+  dropoffPostcode: string;
+  urgency?: string;
+  paymentStatus?: PaymentStatus;
   notes?: string;
   items: OrderItem[];
+  quote?: DeliveryQuote | null;
   status: OrderStatus;
   estimatedFeePence: number;
   ageCheckRequired: boolean;
   createdAt: string;
+  updatedAt?: string;
   driverId?: string | null;
   driverName?: string | null;
   completedAt?: string | null;
@@ -48,9 +79,13 @@ export const serviceAreas = [
 ];
 
 export const statusLabels: Record<OrderStatus, string> = {
-  draft: "Draft",
+  request_submitted: "Request sent",
+  fc_reviewing: "FC reviewing",
+  quote_sent: "Quote sent",
+  quote_accepted: "Quote accepted",
+  payment_pending: "Payment pending",
   paid: "Paid",
-  assigned: "Assigned to driver",
+  assigned: "Driver assigned",
   accepted: "Accepted by driver",
   shopping: "Shopping / collecting",
   collected: "Collected",
@@ -58,11 +93,20 @@ export const statusLabels: Record<OrderStatus, string> = {
   delivered: "Delivered",
   completed: "Completed",
   cancelled: "Cancelled",
+  quote_expired: "Quote expired",
+  quote_rejected: "Quote rejected",
+};
+
+export const quoteStatusLabels: Record<QuoteStatus, string> = {
+  draft: "Draft quote",
+  sent: "Sent to customer",
+  accepted: "Accepted",
+  rejected: "Rejected",
+  expired: "Expired",
 };
 
 export const nextStatuses: Partial<Record<OrderStatus, OrderStatus>> = {
-  draft: "assigned",
-  paid: "accepted",
+  paid: "assigned",
   assigned: "accepted",
   accepted: "shopping",
   shopping: "collected",
@@ -70,6 +114,27 @@ export const nextStatuses: Partial<Record<OrderStatus, OrderStatus>> = {
   en_route: "delivered",
   delivered: "completed",
 };
+
+export const customerLifecycle: OrderStatus[] = [
+  "request_submitted",
+  "fc_reviewing",
+  "quote_sent",
+  "quote_accepted",
+  "paid",
+  "assigned",
+  "shopping",
+  "en_route",
+  "delivered",
+  "completed",
+];
+
+export function isDispatchable(order: Pick<DeliveryOrder, "status" | "paymentStatus" | "driverId" | "driverName">) {
+  return order.status === "paid" && order.paymentStatus === "paid" && !order.driverId && !order.driverName;
+}
+
+export function quoteTotalPence(input: Pick<DeliveryQuote, "itemEstimatePence" | "deliveryFeePence" | "serviceFeePence">) {
+  return Math.max(0, input.itemEstimatePence) + Math.max(0, input.deliveryFeePence) + Math.max(0, input.serviceFeePence);
+}
 
 export function estimateDeliveryFee(postcode: string, ageCheckRequired = false) {
   const clean = postcode.trim().toUpperCase();
@@ -83,5 +148,5 @@ export function isLikelyServiceArea(postcode: string) {
 }
 
 export function formatMoney(pence: number) {
-  return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pence / 100);
+  return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format((Number.isFinite(pence) ? pence : 0) / 100);
 }

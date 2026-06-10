@@ -6,9 +6,12 @@ import { listDriverJobs, listDriverProfiles } from "../../../../lib/order-reposi
 
 export async function GET(request: Request) {
   if (isDemoMode()) {
+    const driverVisibleOrders = demoOrders.filter(
+      (order) => order.paymentStatus === "paid" && ["assigned", "accepted", "shopping", "collected", "en_route", "delivered"].includes(order.status)
+    );
     return jsonOk({
       mode: "demo",
-      orders: demoOrders,
+      orders: driverVisibleOrders,
       dashboard: getDriverDashboardRows(),
     });
   }

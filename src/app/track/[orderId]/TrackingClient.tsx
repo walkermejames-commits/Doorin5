@@ -2,8 +2,11 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, CheckCircle2, Loader2, PackageCheck } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { DemoModePill } from '../../../components/DemoModePill';
+import { Timeline } from '../../../components/ui/Timeline';
+import { StatusPill } from '../../../components/ui/StatusPill';
+import { formatMoney, type DeliveryQuote } from '../../../lib/local-delivery';
 
 type TimelineStep = {
   status: string;
@@ -21,6 +24,7 @@ type TrackingSummary = {
   statusLabel: string;
   ageCheckRequired: boolean;
   timeline: TimelineStep[];
+  quote?: DeliveryQuote | null;
 };
 
 export function TrackingClient({ orderId }: { orderId: string }) {
@@ -73,7 +77,7 @@ export function TrackingClient({ orderId }: { orderId: string }) {
           </div>
         </div>
 
-        <section className="surface-card mt-6 rounded-lg p-5 sm:p-7">
+        <section className="surface-card mt-6 rounded-2xl p-5 sm:p-7">
           {loading && !summary ? (
             <div className="flex items-center gap-3 rounded-lg bg-gray-50 p-4 text-sm font-bold text-gray-700">
               <Loader2 className="animate-spin" size={18} />
@@ -85,43 +89,28 @@ export function TrackingClient({ orderId }: { orderId: string }) {
             <>
               <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
                 <div>
-                  <p className="text-sm font-bold uppercase tracking-wide text-emerald-700">Tracking</p>
+                  <p className="text-sm font-bold uppercase tracking-wide text-[#0f6b4f]">Tracking</p>
                   <h1 className="mt-2 text-3xl font-black">{summary.id}</h1>
                   <p className="mt-2 text-gray-600">
                     {summary.customerName} · {summary.postcode}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <span className="w-fit rounded-lg bg-slate-950 px-4 py-2 text-sm font-bold text-white">{summary.statusLabel}</span>
-                  <span className="w-fit rounded-lg bg-emerald-100 px-4 py-2 text-sm font-bold text-emerald-800">Payment: {summary.paymentStatus ?? 'unpaid'}</span>
+                  <StatusPill label={summary.statusLabel} />
+                  <StatusPill label={`Payment: ${summary.paymentStatus ?? 'unpaid'}`} />
                 </div>
               </div>
 
-              <div className="mt-7 space-y-3">
-                {summary.timeline.map((step) => (
-                  <div
-                    key={step.status}
-                    className={`flex items-center gap-3 rounded-lg border p-4 ${
-                      step.active
-                        ? 'border-emerald-700 bg-emerald-50'
-                        : step.done
-                          ? 'border-gray-200 bg-white'
-                          : 'border-gray-200 bg-gray-50 text-gray-500'
-                    }`}
-                  >
-                    <span
-                      className={`flex size-9 items-center justify-center rounded-full ${
-                        step.done ? 'bg-emerald-700 text-white' : 'bg-gray-200 text-gray-500'
-                      }`}
-                    >
-                      {step.done ? <CheckCircle2 size={18} /> : <PackageCheck size={18} />}
-                    </span>
-                    <div>
-                      <p className="font-black">{step.label}</p>
-                      {step.active && <p className="text-sm font-semibold text-emerald-800">Current status</p>}
-                    </div>
-                  </div>
-                ))}
+              {summary.quote && (
+                <div className="mt-6 rounded-2xl bg-[#241124] p-5 text-[#fff8ec]">
+                  <p className="text-sm font-black uppercase tracking-wide text-[#f1c979]">FC quote total</p>
+                  <p className="mt-1 text-3xl font-black">{formatMoney(summary.quote.totalPence)}</p>
+                  {summary.quote.fcNotes && <p className="mt-3 text-sm leading-6 text-[#f8ead5]">{summary.quote.fcNotes}</p>}
+                </div>
+              )}
+
+              <div className="mt-7">
+                <Timeline steps={summary.timeline} />
               </div>
 
               {summary.ageCheckRequired && (
@@ -131,10 +120,13 @@ export function TrackingClient({ orderId }: { orderId: string }) {
               )}
 
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                <Link href="/order" className="rounded-lg bg-emerald-700 px-5 py-3 text-center font-black text-white">
+                <Link href="/order" className="rounded-xl bg-[#0f6b4f] px-5 py-3 text-center font-black text-white">
                   Create another order
                 </Link>
-                <Link href="/fc" className="rounded-lg border border-slate-300 bg-white px-5 py-3 text-center font-black">
+                <Link href={`/quote/${summary.id}`} className="rounded-xl border border-[#d8cdbd] bg-white px-5 py-3 text-center font-black">
+                  Quote page
+                </Link>
+                <Link href="/fc" className="rounded-xl border border-[#d8cdbd] bg-white px-5 py-3 text-center font-black">
                   FC dashboard
                 </Link>
               </div>

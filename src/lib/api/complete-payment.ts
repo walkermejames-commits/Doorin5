@@ -8,7 +8,7 @@ export function completeDemoPaymentResponse(input: { orderId?: string; providerS
     provider: "mock",
     providerSessionId: input.providerSessionId ?? `mock_session_${order.id}`,
     providerPaymentId: input.providerPaymentId ?? `mock_payment_${order.id}`,
-    amountTotalPence: order.estimatedFeePence,
+    amountTotalPence: order.quote?.totalPence ?? order.estimatedFeePence,
     currency: "gbp",
   });
 }

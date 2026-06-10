@@ -16,11 +16,11 @@ export type AssignDriverResult = {
   eventLogEntry: ReturnType<typeof driverAssignedEntry>;
 };
 
-const assignableStatuses: OrderStatus[] = ["draft", "paid"];
+const assignableStatuses: OrderStatus[] = ["paid"];
 
 export function canAssignDriver(order: Pick<DeliveryOrder, "status">, driver: DriverProfile) {
   if (!assignableStatuses.includes(order.status)) {
-    return { ok: false, reason: "Order must be draft or paid before driver assignment." };
+    return { ok: false, reason: "Order must be paid before driver assignment." };
   }
 
   if (driver.status && !["approved", "active", "pending"].includes(driver.status)) {

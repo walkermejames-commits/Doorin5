@@ -33,7 +33,7 @@ export default function DriverDashboard() {
   const assignedJobs = orders.filter((order) => order.status === 'assigned');
   const activeJobs = orders.filter((order) => ['accepted', 'shopping', 'collected', 'en_route', 'delivered'].includes(order.status));
   const completedJobs = orders.filter((order) => order.status === 'completed');
-  const earnings = [...activeJobs, ...completedJobs].reduce((total, order) => total + order.estimatedFeePence, 0);
+  const earnings = [...assignedJobs, ...activeJobs, ...completedJobs].reduce((total, order) => total + (order.quote?.deliveryFeePence ?? order.estimatedFeePence), 0);
   const selectedProof = orders.find((order) => order.id === (selectedProofOrder || activeJobs[0]?.id)) ?? activeJobs[0] ?? null;
 
   useEffect(() => {
@@ -140,7 +140,7 @@ export default function DriverDashboard() {
               Back to Doorin5
             </Link>
             <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Driver run sheet</h1>
-            <p className="mt-2 w-[calc(100vw-4rem)] text-sm leading-6 text-slate-300 sm:w-auto sm:max-w-2xl sm:text-base">Assigned jobs, route hints, live status updates, and proof capture for the local pilot.</p>
+            <p className="mt-2 w-[calc(100vw-4rem)] text-sm leading-6 text-slate-300 sm:w-auto sm:max-w-2xl sm:text-base">Paid, FC-approved jobs only. No unpaid customer requests appear here.</p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <DemoModePill label={mode === 'supabase' ? 'Supabase live' : 'Demo driver board'} />
@@ -322,11 +322,11 @@ function JobCard({
       <div className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
         <Info label="Pickup" value={order.pickupHint} />
         <Info label="ETA" value={order.pickupEta ?? '8 min'} />
-        <Info label="Fee" value={formatMoney(order.estimatedFeePence)} />
+        <Info label="Delivery fee" value={formatMoney(order.quote?.deliveryFeePence ?? order.estimatedFeePence)} />
       </div>
       <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold">
         <span className="rounded-lg bg-slate-950 px-3 py-1 text-white">Payment: {order.paymentStatus ?? 'unpaid'}</span>
-        <span className="rounded-lg bg-emerald-100 px-3 py-1 text-emerald-800">{order.driverId ? 'Persisted' : 'Demo fallback'}</span>
+        <span className="rounded-lg bg-emerald-100 px-3 py-1 text-emerald-800">FC priced</span>
       </div>
       <div className="mt-4 flex flex-wrap gap-2 text-sm">
         <a href={buildMapsLink(order.pickupHint)} target="_blank" rel="noreferrer" className="rounded-lg border border-gray-300 bg-white px-3 py-2 font-bold hover:border-green-700">Pickup map</a>

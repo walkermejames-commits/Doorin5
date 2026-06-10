@@ -1,4 +1,4 @@
-import { DeliveryOrder, formatMoney, statusLabels } from "./local-delivery";
+import { DeliveryOrder, formatMoney, isDispatchable, statusLabels } from "./local-delivery";
 import { DriverProfile } from "./driver-assignment";
 
 export type OperationsJobCard = {
@@ -18,7 +18,7 @@ export function toOperationsJobCard(order: DeliveryOrder & { driverName?: string
     customerName: order.customerName,
     postcode: order.postcode,
     statusLabel: statusLabels[order.status],
-    feeLabel: formatMoney(order.estimatedFeePence),
+    feeLabel: order.quote ? formatMoney(order.quote.totalPence) : "Awaiting quote",
     ageCheckRequired: order.ageCheckRequired,
     assignedDriverName: order.driverName ?? null,
     itemCount: order.items.reduce((total, item) => total + item.quantity, 0),
@@ -26,17 +26,18 @@ export function toOperationsJobCard(order: DeliveryOrder & { driverName?: string
 }
 
 export function getOperationsSummary(orders: Array<DeliveryOrder & { driverId?: string | null; driverName?: string | null }>, drivers: DriverProfile[] = []) {
-  const paidOrders = orders.filter((order) => ["draft", "paid", "assigned", "accepted", "shopping", "collected", "en_route", "delivered"].includes(order.status));
+  const paidOrders = orders.filter((order) => ["paid", "assigned", "accepted", "shopping", "collected", "en_route", "delivered"].includes(order.status));
   const assignedOrders = orders.filter((order) => Boolean(order.driverId));
-  const unassignedPaidOrders = paidOrders.filter((order) => !order.driverId);
+  const unassignedPaidOrders = paidOrders.filter((order) => isDispatchable(order));
+  const quotedRevenue = orders.reduce((total, order) => total + (order.quote?.totalPence ?? 0), 0);
 
   return {
     visibleJobs: orders.length,
     paidCount: paidOrders.length,
     assignedCount: assignedOrders.length,
     unassignedPaidCount: unassignedPaidOrders.length,
-    totalEstimatedFeesPence: orders.reduce((total, order) => total + order.estimatedFeePence, 0),
-    totalEstimatedFeesLabel: formatMoney(orders.reduce((total, order) => total + order.estimatedFeePence, 0)),
+    totalEstimatedFeesPence: quotedRevenue,
+    totalEstimatedFeesLabel: formatMoney(quotedRevenue),
     availableDrivers: drivers.filter((driver) => driver.available !== false).length,
     busyDrivers: drivers.filter((driver) => (driver.activeJobs ?? 0) > 0).length,
     cards: orders.map(toOperationsJobCard),

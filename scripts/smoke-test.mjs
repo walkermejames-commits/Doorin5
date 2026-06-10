@@ -23,9 +23,10 @@ const env = {
 
 const checks = [
   { path: '/', text: 'Doorin5' },
-  { path: '/order', text: 'Book a local delivery' },
-  { path: '/fc', text: 'FC command centre' },
+  { path: '/order', text: 'FC will confirm your price before you pay' },
+  { path: '/fc', text: 'FC control centre' },
   { path: '/driver', text: 'Driver run sheet' },
+  { path: '/quote/demo-1001', text: 'Customer quote' },
   { path: '/track/demo-1002', text: 'demo-1002' },
   { path: '/api/health', json: true },
   { path: '/api/orders/demo-1002', json: true },

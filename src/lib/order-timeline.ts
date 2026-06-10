@@ -1,14 +1,21 @@
-import { DeliveryOrder, OrderStatus, statusLabels } from "./local-delivery";
+import { DeliveryOrder, OrderStatus, customerLifecycle, statusLabels } from "./local-delivery";
 
-const steps: OrderStatus[] = ["draft", "assigned", "accepted", "shopping", "collected", "en_route", "delivered", "completed"];
+function effectiveTimelineStatus(order: DeliveryOrder, step: OrderStatus) {
+  if (step === "paid") return order.status === "payment_pending" ? "payment_pending" : order.status;
+  if (step === "shopping") return ["accepted", "shopping", "collected"].includes(order.status) ? "shopping" : order.status;
+  return order.status;
+}
 
 export function getOrderTimeline(order: DeliveryOrder) {
-  const currentIndex = steps.indexOf(order.status);
-  return steps.map((status, index) => ({
+  const currentStatus = order.status === "quote_accepted" ? "payment_pending" : order.status;
+  const currentIndex = customerLifecycle.findIndex((step) => effectiveTimelineStatus(order, step) === step || step === currentStatus);
+  const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+
+  return customerLifecycle.map((status, index) => ({
     status,
     label: statusLabels[status],
-    done: currentIndex >= index,
-    active: currentIndex === index,
+    done: safeIndex >= index && !["quote_rejected", "quote_expired", "cancelled"].includes(order.status),
+    active: safeIndex === index && !["quote_rejected", "quote_expired", "cancelled"].includes(order.status),
   }));
 }
 
@@ -18,9 +25,10 @@ export function getOrderPublicSummary(order: DeliveryOrder) {
     customerName: order.customerName,
     postcode: order.postcode,
     status: order.status,
-    paymentStatus: order.paymentStatus ?? 'unpaid',
+    paymentStatus: order.paymentStatus ?? "unpaid",
     statusLabel: statusLabels[order.status],
     timeline: getOrderTimeline(order),
     ageCheckRequired: order.ageCheckRequired,
+    quote: order.quote ?? null,
   };
 }

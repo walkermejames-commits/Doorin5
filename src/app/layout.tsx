@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import type React from "react";
 import { AppNav } from "../components/AppNav";
-import { DemoBanner } from "../components/DemoBanner";
+import { DemoBanner } from "../components/ui/DemoBanner";
 import "./globals.css";
 
 export const metadata: Metadata = {
