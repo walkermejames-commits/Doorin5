@@ -24,8 +24,8 @@ export function getRuntimeConfig(): RuntimeConfig {
   if (!hasValue(process.env.SUPABASE_SERVICE_ROLE_KEY)) missingEnvVars.push("SUPABASE_SERVICE_ROLE_KEY");
 
   if (!hasValue(process.env.STRIPE_SECRET_KEY)) missingEnvVars.push("STRIPE_SECRET_KEY");
-  if (!hasValue(process.env.STRIPE_PUBLIC_KEY) && !hasValue(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY)) {
-    missingEnvVars.push("STRIPE_PUBLIC_KEY or NEXT_PUBLIC_STRIPE_PUBLIC_KEY");
+  if (!hasValue(process.env.STRIPE_PUBLIC_KEY) && !hasValue(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY) && !hasValue(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)) {
+    missingEnvVars.push("STRIPE_PUBLIC_KEY or NEXT_PUBLIC_STRIPE_PUBLIC_KEY or NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY");
   }
   if (!hasValue(process.env.STRIPE_WEBHOOK_SECRET)) missingEnvVars.push("STRIPE_WEBHOOK_SECRET");
 
@@ -33,7 +33,7 @@ export function getRuntimeConfig(): RuntimeConfig {
   if (!hasValue(process.env.DRIVER_ACCESS_CODE)) missingEnvVars.push("DRIVER_ACCESS_CODE");
 
   const supabaseReady = hasValue(process.env.NEXT_PUBLIC_SUPABASE_URL) && hasValue(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) && hasValue(process.env.SUPABASE_SERVICE_ROLE_KEY);
-  const stripeReady = hasValue(process.env.STRIPE_SECRET_KEY) && (hasValue(process.env.STRIPE_PUBLIC_KEY) || hasValue(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY)) && hasValue(process.env.STRIPE_WEBHOOK_SECRET);
+  const stripeReady = hasValue(process.env.STRIPE_SECRET_KEY) && (hasValue(process.env.STRIPE_PUBLIC_KEY) || hasValue(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY) || hasValue(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)) && hasValue(process.env.STRIPE_WEBHOOK_SECRET);
   const authReady = hasValue(process.env.FC_ACCESS_CODE) && hasValue(process.env.DRIVER_ACCESS_CODE);
   const demoMode = !supabaseReady;
 

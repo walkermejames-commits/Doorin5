@@ -18,6 +18,7 @@ export function getOrderPublicSummary(order: DeliveryOrder) {
     customerName: order.customerName,
     postcode: order.postcode,
     status: order.status,
+    paymentStatus: order.paymentStatus ?? 'unpaid',
     statusLabel: statusLabels[order.status],
     timeline: getOrderTimeline(order),
     ageCheckRequired: order.ageCheckRequired,

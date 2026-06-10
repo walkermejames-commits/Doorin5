@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.text();
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, { apiVersion: '2024-9-0' });
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, { apiVersion: '2024-06-20' });
 
   let event: Stripe.Event;
 
@@ -47,21 +47,29 @@ export async function POST(request: Request) {
         throw error;
       }
 
-      await supabase.from('delivery_status_events').insert({
-        order_id: orderId,
-        from_status: existingOrder?.status ?? 'draft',
-        to_status: nextStatus,
-        actor: 'system',
-        note: 'Checkout completed via Stripe webhook.',
-      }).catch(() => undefined);
+      try {
+        await supabase.from('delivery_status_events').insert({
+          order_id: orderId,
+          from_status: existingOrder?.status ?? 'draft',
+          to_status: nextStatus,
+          actor: 'system',
+          note: 'Checkout completed via Stripe webhook.',
+        });
+      } catch {
+        // tables may not exist in demo mode; continue safely
+      }
 
-      await supabase.from('event_log_entries').insert({
-        actor: 'system',
-        action: 'stripe_checkout_completed',
-        target_type: 'payment',
-        target_id: orderId,
-        details: { sessionId: session.id, amountTotal: session.amount_total },
-      }).catch(() => undefined);
+      try {
+        await supabase.from('event_log_entries').insert({
+          actor: 'system',
+          action: 'stripe_checkout_completed',
+          target_type: 'payment',
+          target_id: orderId,
+          details: { sessionId: session.id, amountTotal: session.amount_total },
+        });
+      } catch {
+        // tables may not exist in demo mode; continue safely
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Webhook update failed.';
       return Response.json({ ok: true, received: true, warning: message }, { status: 200 });

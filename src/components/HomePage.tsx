@@ -89,7 +89,7 @@ export default function HomePage() {
           <div className="flex items-center justify-between border-b border-white/10 pb-5">
             <div>
               <p className="text-sm font-semibold text-green-200">Live MVP mode</p>
-              <h2 className="text-2xl font-black">Tonight's courier board</h2>
+              <h2 className="text-2xl font-black">Tonight&apos;s courier board</h2>
             </div>
             <span className="rounded-full bg-green-400 px-3 py-1 text-sm font-bold text-gray-950">Taking orders</span>
           </div>

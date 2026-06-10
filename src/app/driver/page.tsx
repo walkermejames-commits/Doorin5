@@ -33,15 +33,11 @@ export default function DriverDashboard() {
   const activeJobs = orders.filter((order) => ['accepted', 'shopping', 'collected', 'en_route', 'delivered'].includes(order.status));
   const completedJobs = orders.filter((order) => order.status === 'completed');
   const earnings = [...activeJobs, ...completedJobs].reduce((total, order) => total + order.estimatedFeePence, 0);
-  const selectedProof = orders.find((order) => order.id === selectedProofOrder) ?? activeJobs[0];
+  const selectedProof = orders.find((order) => order.id === (selectedProofOrder || activeJobs[0]?.id)) ?? activeJobs[0] ?? null;
 
   useEffect(() => {
     loadJobs();
   }, []);
-
-  useEffect(() => {
-    if (!selectedProofOrder && activeJobs[0]) setSelectedProofOrder(activeJobs[0].id);
-  }, [activeJobs, selectedProofOrder]);
 
   async function loadJobs() {
     setLoading(true);
@@ -214,7 +210,7 @@ export default function DriverDashboard() {
                 Navigation placeholder
               </p>
               <p className="mt-2 text-sm leading-6 text-gray-600">
-                Real driver launch should add pickup and dropoff map links here. The operational status workflow now persists first.
+                Use the pickup and dropoff links below to open Google Maps and confirm the route. The driver status workflow stays persisted when Supabase is available.
               </p>
             </div>
 
@@ -222,7 +218,7 @@ export default function DriverDashboard() {
               <Camera className="text-green-700" size={22} />
               <div>
                 <h2 className="text-xl font-black">Proof of delivery</h2>
-                <p className="text-sm text-gray-600">Save handover evidence and complete the order.</p>
+                <p className="text-sm text-gray-600">Save handover evidence and confirm the completion step for pilot review.</p>
               </div>
             </div>
 
@@ -327,6 +323,14 @@ function JobCard({
         <Info label="ETA" value={order.pickupEta ?? '8 min'} />
         <Info label="Fee" value={formatMoney(order.estimatedFeePence)} />
       </div>
+      <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold">
+        <span className="rounded-full bg-gray-950 px-3 py-1 text-white">Payment: {order.paymentStatus ?? 'unpaid'}</span>
+        <span className="rounded-full bg-green-100 px-3 py-1 text-green-800">{order.driverId ? 'Persisted' : 'Demo fallback'}</span>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2 text-sm">
+        <a href={buildMapsLink(order.pickupHint)} target="_blank" rel="noreferrer" className="rounded-lg border border-gray-300 bg-white px-3 py-2 font-bold hover:border-green-700">Pickup map</a>
+        <a href={buildMapsLink(order.dropoffAddress)} target="_blank" rel="noreferrer" className="rounded-lg border border-gray-300 bg-white px-3 py-2 font-bold hover:border-green-700">Dropoff map</a>
+      </div>
       <ul className="mt-4 space-y-2 text-sm">
         {order.items.map((item) => (
           <li key={`${order.id}-${item.name}`} className="flex justify-between rounded-lg bg-white px-3 py-2">
@@ -352,6 +356,10 @@ function JobCard({
       </button>
     </article>
   );
+}
+
+function buildMapsLink(query: string) {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
 function Info({ label, value }: { label: string; value: string }) {

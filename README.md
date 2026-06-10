@@ -25,6 +25,8 @@ It reuses the strongest Door in Four ideas in a smaller demoable product:
 
 The backend/demo spine is now in place. The visible customer and driver pages are wired for local demonstration, and the API and data model are ready for the MVP flow.
 
+The pilot-ready foundation now includes a safe runtime config checker, Stripe checkout fallback logic, Stripe webhook handling, simple pilot passcode protection, and readiness endpoints for FC/driver review.
+
 ## App Router note
 
 The app now uses `src/app` as the only Next.js App Router root. An old top-level `app/` directory and a typo `layout.txs` file were removed because they could make local dev pick up pages without a valid root layout and show the "Missing <html> and <body> tags" overlay. If dev starts strangely, stop the server and delete `.next` before restarting.
@@ -33,7 +35,8 @@ The app now uses `src/app` as the only Next.js App Router root. An old top-level
 
 ```bash
 npm install
-cp .env.local.example .env.local
+cp .env.example .env.local
+npm run smoke:pilot
 npm run dev
 ```
 

@@ -16,6 +16,7 @@ type TrackingSummary = {
   customerName: string;
   postcode: string;
   status: string;
+  paymentStatus?: string;
   statusLabel: string;
   ageCheckRequired: boolean;
   timeline: TimelineStep[];
@@ -80,7 +81,10 @@ export function TrackingClient({ orderId }: { orderId: string }) {
                     {summary.customerName} · {summary.postcode}
                   </p>
                 </div>
-                <span className="w-fit rounded-full bg-gray-950 px-4 py-2 text-sm font-bold text-white">{summary.statusLabel}</span>
+                <div className="flex flex-wrap gap-2">
+                  <span className="w-fit rounded-full bg-gray-950 px-4 py-2 text-sm font-bold text-white">{summary.statusLabel}</span>
+                  <span className="w-fit rounded-full bg-green-100 px-4 py-2 text-sm font-bold text-green-800">Payment: {summary.paymentStatus ?? 'unpaid'}</span>
+                </div>
               </div>
 
               <div className="mt-7 space-y-3">
