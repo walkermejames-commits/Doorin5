@@ -1,3 +1,5 @@
+import { getRuntimeConfig } from "./runtime-config";
+
 export type SuitcaseMode = "demo" | "local" | "hosted";
 
 export type SuitcaseConfig = {
@@ -9,29 +11,27 @@ export type SuitcaseConfig = {
   demoTrackingPath: string;
   supabaseConfigured: boolean;
   stripeConfigured: boolean;
+  deploymentMode: string;
+  authReady: boolean;
+  missingEnvVars: string[];
+  blockers: string[];
 };
 
 export function getSuitcaseConfig(): SuitcaseConfig {
-  const supabaseConfigured = Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      !process.env.NEXT_PUBLIC_SUPABASE_URL.includes("your-project") &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
-
-  const stripeConfigured = Boolean(
-    process.env.STRIPE_SECRET_KEY && !process.env.STRIPE_SECRET_KEY.includes("replace_me")
-  );
-
-  const mode: SuitcaseMode = supabaseConfigured ? "hosted" : "demo";
+  const config = getRuntimeConfig();
 
   return {
     appName: "Doorin5",
-    mode,
+    mode: config.demoMode ? "demo" : "hosted",
     serviceArea: process.env.DEMO_SERVICE_AREA ?? "Tunbridge Wells",
     driverName: process.env.DEMO_DRIVER_NAME ?? "Doorin5 Driver",
     appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
     demoTrackingPath: process.env.NEXT_PUBLIC_DEMO_TRACKING_PATH ?? "/track-demo",
-    supabaseConfigured,
-    stripeConfigured,
+    supabaseConfigured: config.supabaseReady,
+    stripeConfigured: config.stripeReady,
+    deploymentMode: config.deploymentMode,
+    authReady: config.authReady,
+    missingEnvVars: config.missingEnvVars,
+    blockers: config.blockers,
   };
 }

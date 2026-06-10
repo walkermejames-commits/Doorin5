@@ -1,5 +1,7 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import type React from "react";
+import { AppNav } from "../components/AppNav";
+import { DemoBanner } from "../components/DemoBanner";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -10,7 +12,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="bg-[#f6f7f2] text-gray-950 antialiased">{children}</body>
+      <body className="bg-[#f6f7f2] text-gray-950 antialiased">
+        <DemoBanner />
+        <AppNav />
+        {children}
+      </body>
     </html>
   );
 }

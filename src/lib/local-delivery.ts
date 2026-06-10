@@ -24,6 +24,7 @@ export type DeliveryOrder = {
   pickupHint: string;
   dropoffAddress: string;
   postcode: string;
+  paymentStatus?: "unpaid" | "mock_paid" | "paid" | "refunded" | "failed";
   notes?: string;
   items: OrderItem[];
   status: OrderStatus;

@@ -1,0 +1,16 @@
+{
+  "recommendations": [
+    "GitHub.vscode-pull-request-github",
+    "GitHub.vscode-github-actions",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+    "yoavbls.pretty-ts-errors",
+    "christian-kohler.npm-intellisense",
+    "mikestead.dotenv",
+    "usernamehw.errorlens",
+    "rangav.vscode-thunder-client",
+    "supabase.supabase-vscode",
+    "eamodio.gitlens"
+  ]
+}
