@@ -4,8 +4,8 @@
 
 Current checkout: `demo-ready-reconciliation`
 Default branch: `main`
-Latest visible main commit: `787b27a` — Document Doorin5 operational artery
-Useful historical commit under review: `1c0362f` — Add Supabase operational lifecycle persistence
+Latest visible main commit at reconciliation time: `787b27a` - Document Doorin5 operational artery
+Useful historical commit under review: `1c0362f` - Add Supabase operational lifecycle persistence
 
 After `git fetch origin`, `origin/demo-ready-reconciliation` already existed and contained `origin/main`. The current graph shows `main` already containing `1c0362f`, `29cd179`, and `787b27a`, so the useful operational lifecycle work is already present in the main line of history.
 

@@ -130,30 +130,32 @@ export default function DriverDashboard() {
   );
 
   return (
-    <main className="min-h-screen bg-[#f6f7f2] text-gray-950">
-      <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 lg:px-8">
-        <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+    <main className="min-h-screen text-slate-950">
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mb-6 overflow-hidden rounded-lg bg-slate-950 p-5 text-white shadow-xl shadow-slate-950/10 sm:p-6">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
-            <Link href="/" className="inline-flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-gray-950">
+            <Link href="/" className="inline-flex items-center gap-2 text-sm font-bold text-slate-300 hover:text-white">
               <ArrowLeft size={16} />
               Back to Doorin5
             </Link>
-            <h1 className="mt-3 text-3xl font-black">Driver dashboard</h1>
-            <p className="mt-1 text-gray-600">Assigned jobs, live status updates, and delivery proof capture.</p>
+            <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Driver run sheet</h1>
+            <p className="mt-2 w-[calc(100vw-4rem)] text-sm leading-6 text-slate-300 sm:w-auto sm:max-w-2xl sm:text-base">Assigned jobs, route hints, live status updates, and proof capture for the local pilot.</p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <DemoModePill label={mode === 'supabase' ? 'Supabase live' : 'Demo driver board'} />
-            <Link href="/fc" className="rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-bold hover:border-gray-500">
+            <Link href="/fc" className="rounded-lg border border-white/20 bg-white/10 px-4 py-3 text-sm font-black text-white hover:bg-white/18">
               FC view
             </Link>
+          </div>
           </div>
         </div>
 
         <section className="grid gap-3 sm:grid-cols-3">
           {summaryCards.map((card) => (
-            <div key={card.label} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-              <card.icon className="text-green-700" size={22} />
-              <p className="mt-4 text-sm font-bold text-gray-500">{card.label}</p>
+            <div key={card.label} className="surface-card interactive-card rounded-lg p-5">
+              <card.icon className="text-emerald-700" size={22} />
+              <p className="mt-4 text-sm font-bold text-slate-500">{card.label}</p>
               <p className="mt-1 text-3xl font-black">{card.value}</p>
             </div>
           ))}
@@ -202,11 +204,11 @@ export default function DriverDashboard() {
             </DashboardPanel>
           </section>
 
-          <aside className="h-fit rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-            <div className="mb-5 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4">
+          <aside className="surface-card h-fit rounded-lg p-5">
+            <div className="mb-5 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4">
               <p className="flex items-center gap-2 text-sm font-black text-gray-900">
-                <MapPinned size={18} className="text-green-700" />
-                Navigation placeholder
+                <MapPinned size={18} className="text-emerald-700" />
+                Route tools
               </p>
               <p className="mt-2 text-sm leading-6 text-gray-600">
                 Use the pickup and dropoff links below to open Google Maps and confirm the route. The driver status workflow stays persisted when Supabase is available.
@@ -214,7 +216,7 @@ export default function DriverDashboard() {
             </div>
 
             <div className="flex items-center gap-3">
-              <Camera className="text-green-700" size={22} />
+              <Camera className="text-emerald-700" size={22} />
               <div>
                 <h2 className="text-xl font-black">Proof of delivery</h2>
                 <p className="text-sm text-gray-600">Save handover evidence and confirm the completion step for pilot review.</p>
@@ -255,7 +257,7 @@ export default function DriverDashboard() {
                   type="button"
                   onClick={saveProof}
                   disabled={isSaving}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gray-950 px-5 py-3 font-bold text-white disabled:bg-gray-400"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-slate-950 px-5 py-3 font-black text-white disabled:bg-slate-400"
                 >
                   {isSaving && <Loader2 className="animate-spin" size={18} />}
                   Complete delivery
@@ -285,7 +287,7 @@ function DashboardPanel({ title, empty, children }: { title: string; empty: stri
   const hasChildren = Array.isArray(children) ? children.length > 0 : Boolean(children);
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+    <section className="surface-card rounded-lg p-5">
       <h2 className="text-xl font-black">{title}</h2>
       <div className="mt-4 space-y-4">
         {hasChildren ? children : <p className="rounded-lg bg-gray-50 p-4 text-sm font-semibold text-gray-600">{empty}</p>}
@@ -308,14 +310,14 @@ function JobCard({
   const isComplete = order.status === 'completed' || order.status === 'cancelled';
 
   return (
-    <article className="rounded-lg border border-gray-200 bg-[#f6f7f2] p-4">
+    <article className="interactive-card rounded-lg border border-slate-200 bg-slate-50 p-4">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
         <div>
           <p className="text-sm font-bold text-gray-500">{order.id}</p>
           <h3 className="text-lg font-black">{order.customerName}</h3>
           <p className="mt-1 text-sm text-gray-600">{order.dropoffAddress}</p>
         </div>
-        <span className="w-fit rounded-full bg-gray-950 px-3 py-1 text-xs font-bold text-white">{statusLabels[order.status]}</span>
+        <span className="w-fit rounded-lg bg-slate-950 px-3 py-1 text-xs font-bold text-white">{statusLabels[order.status]}</span>
       </div>
       <div className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
         <Info label="Pickup" value={order.pickupHint} />
@@ -323,8 +325,8 @@ function JobCard({
         <Info label="Fee" value={formatMoney(order.estimatedFeePence)} />
       </div>
       <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold">
-        <span className="rounded-full bg-gray-950 px-3 py-1 text-white">Payment: {order.paymentStatus ?? 'unpaid'}</span>
-        <span className="rounded-full bg-green-100 px-3 py-1 text-green-800">{order.driverId ? 'Persisted' : 'Demo fallback'}</span>
+        <span className="rounded-lg bg-slate-950 px-3 py-1 text-white">Payment: {order.paymentStatus ?? 'unpaid'}</span>
+        <span className="rounded-lg bg-emerald-100 px-3 py-1 text-emerald-800">{order.driverId ? 'Persisted' : 'Demo fallback'}</span>
       </div>
       <div className="mt-4 flex flex-wrap gap-2 text-sm">
         <a href={buildMapsLink(order.pickupHint)} target="_blank" rel="noreferrer" className="rounded-lg border border-gray-300 bg-white px-3 py-2 font-bold hover:border-green-700">Pickup map</a>
@@ -348,7 +350,7 @@ function JobCard({
         type="button"
         onClick={onAction}
         disabled={isComplete || busy}
-        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-green-700 px-4 py-3 text-sm font-bold text-white disabled:bg-gray-400"
+        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-700 px-4 py-3 text-sm font-black text-white disabled:bg-slate-400"
       >
         {busy ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
         {isComplete ? 'No further action' : actionLabel}

@@ -130,23 +130,31 @@ export default function OrderPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f6f7f2] text-gray-950">
-      <div className="mx-auto max-w-5xl px-4 py-5 sm:px-6 lg:px-8">
-        <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-          <Link href="/" className="inline-flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-gray-950">
-            <ArrowLeft size={16} />
-            Back to Doorin5
-          </Link>
-          <DemoModePill label="Demo order flow" />
+    <main className="min-h-screen text-slate-950">
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mb-6 overflow-hidden rounded-lg bg-slate-950 p-5 text-white shadow-xl shadow-slate-950/10 sm:p-6">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+            <div>
+              <Link href="/" className="inline-flex items-center gap-2 text-sm font-bold text-slate-300 hover:text-white">
+                <ArrowLeft size={16} />
+                Back to Doorin5
+              </Link>
+              <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Create a local delivery request</h1>
+              <p className="mt-2 w-[calc(100vw-4rem)] text-sm leading-6 text-slate-300 sm:w-auto sm:max-w-2xl sm:text-base">
+                Walk through pickup, dropoff, item, and contact details with demo-safe order creation.
+              </p>
+            </div>
+            <DemoModePill label="Demo order flow" />
+          </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[0.72fr_0.28fr]">
-          <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-7">
+          <section className="surface-card rounded-lg p-5 sm:p-7">
             {step !== 'success' ? (
               <>
                 <div className="mb-6">
                   <p className="text-sm font-bold uppercase tracking-wide text-green-700">Step {currentIndex + 1} of 5</p>
-                  <h1 className="mt-2 text-3xl font-black">Book a local delivery</h1>
+                  <h2 className="mt-2 text-2xl font-black sm:text-3xl">Book a local delivery</h2>
                   <div className="mt-5 grid grid-cols-5 gap-2">
                     {stepOrder.map((item, index) => (
                       <div
@@ -380,13 +388,13 @@ export default function OrderPage() {
                 </p>
                 <p className="mt-4 rounded-lg bg-green-50 p-3 text-sm font-bold text-green-800">Reference: {createdOrderId}</p>
                 <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
-                  <Link href={`/track/${createdOrderId}`} className="rounded-lg bg-green-700 px-5 py-3 font-bold text-white">
+                  <Link href={`/track/${createdOrderId}`} className="rounded-lg bg-emerald-700 px-5 py-3 font-black text-white">
                     Track order
                   </Link>
-                  <Link href="/driver" className="rounded-lg bg-gray-950 px-5 py-3 font-bold text-white">
+                  <Link href="/driver" className="rounded-lg bg-slate-950 px-5 py-3 font-black text-white">
                     Driver board
                   </Link>
-                  <Link href="/fc" className="rounded-lg border border-gray-300 bg-white px-5 py-3 font-bold">
+                  <Link href="/fc" className="rounded-lg border border-slate-300 bg-white px-5 py-3 font-black">
                     View FC dashboard
                   </Link>
                 </div>
@@ -394,7 +402,7 @@ export default function OrderPage() {
             )}
           </section>
 
-          <aside className="h-fit rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <aside className="surface-card h-fit rounded-lg p-5">
             <p className="text-sm font-bold uppercase tracking-wide text-green-700">Estimate</p>
             <p className="mt-2 text-4xl font-black">{formatMoney(estimatedFee)}</p>
             <p className="mt-2 text-sm leading-6 text-gray-600">

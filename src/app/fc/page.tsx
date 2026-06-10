@@ -115,35 +115,37 @@ export default function FcDashboard() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f6f7f2] text-gray-950">
-      <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
-        <div className="mb-6 flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+    <main className="min-h-screen text-slate-950">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mb-6 overflow-hidden rounded-lg bg-slate-950 p-5 text-white shadow-xl shadow-slate-950/10 sm:p-6">
+          <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
           <div>
-            <Link href="/" className="inline-flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-gray-950">
+            <Link href="/" className="inline-flex items-center gap-2 text-sm font-bold text-slate-300 hover:text-white">
               <ArrowLeft size={16} />
               Back to Doorin5
             </Link>
-            <h1 className="mt-3 text-3xl font-black">FC dashboard</h1>
-            <p className="mt-1 text-gray-600">
-              Persistent dispatch control for orders, drivers, exceptions, and lifecycle status.
+            <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">FC command centre</h1>
+            <p className="mt-2 w-[calc(100vw-4rem)] text-sm leading-6 text-slate-300 sm:w-auto sm:max-w-2xl sm:text-base">
+              Dispatch, drivers, payments, and exceptions in one safe demo view.
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <DemoModePill label={mode === 'supabase' ? 'Supabase live' : 'Demo FC board'} />
-            <Link href="/order" className="rounded-lg bg-green-700 px-4 py-3 text-sm font-bold text-white">
+            <Link href="/order" className="rounded-lg bg-emerald-500 px-4 py-3 text-sm font-black text-emerald-950 hover:bg-emerald-400">
               Create customer order
             </Link>
-            <Link href="/driver" className="rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-bold hover:border-gray-500">
+            <Link href="/driver" className="rounded-lg border border-white/20 bg-white/10 px-4 py-3 text-sm font-black text-white hover:bg-white/18">
               Driver board
             </Link>
+          </div>
           </div>
         </div>
 
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {cards.map((card) => (
-            <div key={card.label} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-              <card.icon className="text-green-700" size={22} />
-              <p className="mt-4 text-sm font-bold text-gray-500">{card.label}</p>
+            <div key={card.label} className="surface-card interactive-card rounded-lg p-5">
+              <card.icon className="text-emerald-700" size={22} />
+              <p className="mt-4 text-sm font-bold text-slate-500">{card.label}</p>
               <p className="mt-1 text-3xl font-black">{card.value}</p>
             </div>
           ))}
@@ -158,22 +160,22 @@ export default function FcDashboard() {
         {message && <p className="mt-5 rounded-lg bg-green-50 p-4 text-sm font-bold text-green-800">{message}</p>}
         {error && <p className="mt-5 rounded-lg bg-red-50 p-4 text-sm font-bold text-red-700">{error}</p>}
         {readiness && (readiness.warnings?.length || readiness.blockers?.length) ? (
-          <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+          <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
             <p className="flex items-center gap-2 font-black"><ShieldAlert size={16} /> Pilot readiness</p>
-            <p className="mt-1">Mode: {readiness.deploymentMode ?? 'local'} · Status: {readiness.status ?? 'warning'}</p>
-            {(readiness.warnings ?? []).map((item) => <p key={item} className="mt-1">• {item}</p>)}
-            {(readiness.blockers ?? []).map((item) => <p key={item} className="mt-1 font-semibold">• {item}</p>)}
+            <p className="mt-1">Mode: {readiness.deploymentMode ?? 'local'} / Status: {readiness.status ?? 'warning'}</p>
+            {(readiness.warnings ?? []).map((item) => <p key={item} className="mt-1">- {item}</p>)}
+            {(readiness.blockers ?? []).map((item) => <p key={item} className="mt-1 font-semibold">- {item}</p>)}
           </div>
         ) : null}
 
         <div className="mt-6 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-          <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <section className="surface-card rounded-lg p-5">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-xl font-black">Dispatch queue</h2>
                 <p className="text-sm text-gray-600">Orders waiting for a driver assignment.</p>
               </div>
-              <span className="rounded-full bg-gray-950 px-3 py-1 text-sm font-bold text-white">{dispatchQueue.length} waiting</span>
+              <span className="rounded-lg bg-slate-950 px-3 py-1 text-sm font-bold text-white">{dispatchQueue.length} waiting</span>
             </div>
 
             <div className="mt-4 space-y-4">
@@ -181,29 +183,29 @@ export default function FcDashboard() {
                 dispatchQueue.map((order) => {
                   const requiresManualOverride = order.status === 'draft' && order.paymentStatus !== 'paid';
                   return (
-                  <article key={order.id} className="rounded-lg border border-gray-200 bg-[#f6f7f2] p-4">
+                  <article key={order.id} className="interactive-card rounded-lg border border-slate-200 bg-slate-50 p-4">
                     <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                       <div>
                         <p className="text-sm font-bold text-gray-500">{order.id}</p>
                         <h3 className="text-lg font-black">{order.customerName}</h3>
                         <p className="mt-1 text-sm text-gray-600">{order.pickupHint}</p>
                       </div>
-                      <span className="w-fit rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-800">
+                      <span className="w-fit rounded-lg bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">
                         {statusLabels[order.status]}
                       </span>
-                      <span className="w-fit rounded-full bg-gray-950 px-3 py-1 text-xs font-bold text-white">Payment: {order.paymentStatus ?? 'unpaid'}</span>
+                      <span className="w-fit rounded-lg bg-slate-950 px-3 py-1 text-xs font-bold text-white">Payment: {order.paymentStatus ?? 'unpaid'}</span>
                     </div>
                     <div className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
                       <Info label="Dropoff" value={order.postcode} />
                       <Info label="Fee" value={formatMoney(order.estimatedFeePence)} />
                       <Info label="Items" value={String(order.items.length)} />
                     </div>
-                    {requiresManualOverride && <p className="mt-3 rounded-lg bg-amber-50 p-3 text-xs font-bold text-amber-900">Unpaid draft order — manual FC override required before dispatch.</p>}
+                    {requiresManualOverride && <p className="mt-3 rounded-lg bg-amber-50 p-3 text-xs font-bold text-amber-900">Unpaid draft order - manual FC override required before dispatch.</p>}
                     <button
                       type="button"
                       onClick={() => dispatch(order)}
                       disabled={isDispatching === order.id || drivers.length === 0 || requiresManualOverride}
-                      className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-green-700 px-4 py-3 text-sm font-bold text-white disabled:bg-gray-400"
+                      className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-700 px-4 py-3 text-sm font-black text-white disabled:bg-slate-400"
                     >
                       {isDispatching === order.id ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
                       {requiresManualOverride ? 'Manual FC override' : 'Assign driver'}
@@ -221,12 +223,12 @@ export default function FcDashboard() {
         </div>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
-          <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <section className="surface-card rounded-lg p-5">
             <h2 className="text-xl font-black">Active drivers</h2>
             <div className="mt-4 space-y-3">
               {drivers.length > 0 ? (
                 drivers.map((driver) => (
-                  <div key={driver.id} className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <div key={driver.id} className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-4">
                     <div>
                       <p className="font-black">{driver.name}</p>
                       <p className="text-sm text-gray-600">
@@ -242,7 +244,7 @@ export default function FcDashboard() {
             </div>
           </section>
 
-          <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <section className="surface-card rounded-lg p-5">
             <h2 className="text-xl font-black">Exceptions</h2>
             <div className="mt-4 space-y-3">
               {exceptions.length > 0 ? (
@@ -270,7 +272,7 @@ export default function FcDashboard() {
 
 function OrderTable({ title, orders, empty }: { title: string; orders: FcOrder[]; empty: string }) {
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+    <section className="surface-card rounded-lg p-5">
       <h2 className="text-xl font-black">{title}</h2>
       <div className="mt-4 overflow-hidden rounded-lg border border-gray-200">
         <div className="grid grid-cols-[1fr_0.8fr_0.8fr] bg-gray-950 px-4 py-3 text-sm font-bold text-white">

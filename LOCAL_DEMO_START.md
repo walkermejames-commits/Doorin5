@@ -7,7 +7,7 @@ This project is designed to run locally in demo mode even when Supabase or Strip
 ```bash
 git clone https://github.com/walkermejames-commits/Doorin5.git
 cd Doorin5
-git checkout demo-ready-reconciliation
+git checkout main
 npm install
 cp .env.example .env.local
 npm run dev
