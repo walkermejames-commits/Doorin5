@@ -1,6 +1,7 @@
 import { ArrowRight, BadgeCheck, Clock, MapPin, Route, ShieldCheck, Sparkles, Truck } from 'lucide-react';
 import Link from 'next/link';
 import { serviceAreas } from '../lib/local-delivery';
+import { DemoModePill } from './DemoModePill';
 
 const trustSignals = [
   { label: 'Local FC dispatch', value: 'Human checked' },
@@ -41,6 +42,7 @@ export default function HomePage() {
             <Link href="/fc" className="hover:text-gray-950">
               FC dashboard
             </Link>
+            <DemoModePill />
           </div>
         </nav>
       </header>
@@ -51,6 +53,9 @@ export default function HomePage() {
             <MapPin size={16} />
             Tunbridge Wells courier MVP
           </p>
+          <div className="mb-4 sm:hidden">
+            <DemoModePill />
+          </div>
           <h1 className="max-w-3xl text-5xl font-black leading-tight sm:text-6xl">
             Fast local pickup and delivery, coordinated by FC.
           </h1>

@@ -13,9 +13,12 @@ const protectedPaths = [
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const hasCodes = Boolean(process.env.FC_ACCESS_CODE && process.env.DRIVER_ACCESS_CODE);
+  const fcCode = process.env.FC_ACCESS_CODE;
+  const driverCode = process.env.DRIVER_ACCESS_CODE;
+  const hasCodes = Boolean(fcCode && driverCode);
+  const defaultLocalDemoCodes = fcCode === 'fc-demo' && driverCode === 'driver-demo' && process.env.VERCEL_ENV !== 'production';
 
-  if (!hasCodes) {
+  if (!hasCodes || defaultLocalDemoCodes) {
     return NextResponse.next();
   }
 

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, CheckCircle2, Loader2, PackageCheck } from 'lucide-react';
+import { DemoModePill } from '../../../components/DemoModePill';
 
 type TimelineStep = {
   status: string;
@@ -58,10 +59,13 @@ export function TrackingClient({ orderId }: { orderId: string }) {
   return (
     <main className="min-h-screen bg-[#f6f7f2] text-gray-950">
       <div className="mx-auto max-w-3xl px-4 py-5 sm:px-6 lg:px-8">
-        <Link href="/" className="inline-flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-gray-950">
-          <ArrowLeft size={16} />
-          Back to Doorin5
-        </Link>
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+          <Link href="/" className="inline-flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-gray-950">
+            <ArrowLeft size={16} />
+            Back to Doorin5
+          </Link>
+          <DemoModePill label="Demo tracking" />
+        </div>
 
         <section className="mt-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-7">
           {loading && !summary ? (

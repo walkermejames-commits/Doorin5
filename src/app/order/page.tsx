@@ -5,6 +5,7 @@ import type React from 'react';
 import { useMemo, useState } from 'react';
 import { ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
 import { estimateDeliveryFee, formatMoney, isLikelyServiceArea } from '../../lib/local-delivery';
+import { DemoModePill } from '../../components/DemoModePill';
 
 type ItemRow = {
   name: string;
@@ -131,10 +132,13 @@ export default function OrderPage() {
   return (
     <main className="min-h-screen bg-[#f6f7f2] text-gray-950">
       <div className="mx-auto max-w-5xl px-4 py-5 sm:px-6 lg:px-8">
-        <Link href="/" className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-gray-950">
-          <ArrowLeft size={16} />
-          Back to Doorin5
-        </Link>
+        <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+          <Link href="/" className="inline-flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-gray-950">
+            <ArrowLeft size={16} />
+            Back to Doorin5
+          </Link>
+          <DemoModePill label="Demo order flow" />
+        </div>
 
         <div className="grid gap-6 lg:grid-cols-[0.72fr_0.28fr]">
           <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-7">

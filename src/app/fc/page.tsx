@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ArrowLeft, Bike, CheckCircle2, Loader2, PackageSearch, PoundSterling, ShieldAlert } from 'lucide-react';
 import { DeliveryOrder, formatMoney, statusLabels } from '../../lib/local-delivery';
 import { DriverProfile } from '../../lib/driver-assignment';
+import { DemoModePill } from '../../components/DemoModePill';
 
 type FcOrder = DeliveryOrder & {
   exception?: string;
@@ -128,9 +129,7 @@ export default function FcDashboard() {
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <span className="rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-bold text-gray-700">
-              {mode === 'supabase' ? 'Supabase live' : 'Demo fallback'}
-            </span>
+            <DemoModePill label={mode === 'supabase' ? 'Supabase live' : 'Demo FC board'} />
             <Link href="/order" className="rounded-lg bg-green-700 px-4 py-3 text-sm font-bold text-white">
               Create customer order
             </Link>

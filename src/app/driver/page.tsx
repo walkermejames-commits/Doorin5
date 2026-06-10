@@ -5,6 +5,7 @@ import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Camera, CheckCircle2, Clock, Loader2, MapPinned, PackageCheck, PoundSterling } from 'lucide-react';
 import { DeliveryOrder, formatMoney, nextStatuses, statusLabels } from '../../lib/local-delivery';
+import { DemoModePill } from '../../components/DemoModePill';
 
 type DriverOrder = DeliveryOrder & {
   distanceMiles?: number;
@@ -141,9 +142,7 @@ export default function DriverDashboard() {
             <p className="mt-1 text-gray-600">Assigned jobs, live status updates, and delivery proof capture.</p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <span className="rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-bold text-gray-700">
-              {mode === 'supabase' ? 'Supabase live' : 'Demo fallback'}
-            </span>
+            <DemoModePill label={mode === 'supabase' ? 'Supabase live' : 'Demo driver board'} />
             <Link href="/fc" className="rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-bold hover:border-gray-500">
               FC view
             </Link>
